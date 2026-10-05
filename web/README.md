@@ -48,6 +48,6 @@
    ```
 
 ## 🌐 Live Demo
-Visit the live site: [PlantInfo AI Live](https://1Sakib1.github.io/PlantInfo/)
+Visit the live site: [PlantInfo AI Live](https://plantinfo-web.vercel.app)
 
 *(Note: You will need a free Google Gemini API key to use the computer vision features.)*
