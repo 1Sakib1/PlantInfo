@@ -59,36 +59,32 @@ export default function App() {
 }
 
 function ExploreTab({ onSearch }) {
-  const [heroPlant, setHeroPlant] = useState(null);
-  const [trendingPlants, setTrendingPlants] = useState([
-    { title: 'Monstera deliciosa', desc: 'Famous for its natural leaf holes.', img: null },
-    { title: 'Dracaena trifasciata', label: 'Snake Plant', desc: 'Incredibly resilient air purifier.', img: null },
-    { title: 'Lavandula', label: 'Lavender', desc: 'Known for its calming fragrance.', img: null },
-    { title: 'Spathiphyllum', label: 'Peace Lily', desc: 'Beautiful white blooms year-round.', img: null },
+  const [topPlants, setTopPlants] = useState([
+    { title: 'Bonsai', label: 'Bonsai Tree', desc: 'The ancient Japanese art of growing miniature trees in containers.', img: null },
+    { title: 'Monstera deliciosa', label: 'Monstera', desc: 'Famous for its natural leaf holes and tropical vibe.', img: null },
+    { title: 'Dracaena trifasciata', label: 'Snake Plant', desc: 'Incredibly resilient air purifier that thrives on neglect.', img: null },
+    { title: 'Lavandula', label: 'Lavender', desc: 'Known worldwide for its calming, therapeutic fragrance.', img: null },
+    { title: 'Spathiphyllum', label: 'Peace Lily', desc: 'Beautiful white blooms year-round and great for air quality.', img: null },
+    { title: 'Ficus lyrata', label: 'Fiddle-leaf Fig', desc: 'Popular houseplant featuring massive, leathery leaves.', img: null },
+    { title: 'Aloe vera', label: 'Aloe Vera', desc: 'A hardy succulent plant species historically known for medicinal uses.', img: null },
+    { title: 'Epipremnum aureum', label: 'Golden Pothos', desc: 'An almost indestructible trailing vine with heart-shaped leaves.', img: null },
+    { title: 'Zamioculcas', label: 'ZZ Plant', desc: 'Tolerates extremely low light and requires highly infrequent watering.', img: null },
+    { title: 'Chlorophytum comosum', label: 'Spider Plant', desc: 'Produces tiny ornamental plantlets on long trailing stems.', img: null },
   ]);
 
   useEffect(() => {
-    // Fetch Hero Plant
-    fetch('https://en.wikipedia.org/api/rest_v1/page/summary/Bonsai')
-      .then(r => r.json())
-      .then(data => {
-        if (data.originalimage) {
-          setHeroPlant({
-            title: 'Bonsai Tree',
-            searchQuery: 'Bonsai',
-            desc: 'The ancient Japanese art of growing miniature trees in containers, representing peace, balance, and harmony.',
-            img: data.originalimage.source
-          });
-        }
-      });
-
-    // Fetch Trending Plants
-    trendingPlants.forEach((plant, index) => {
+    topPlants.forEach((plant, index) => {
       fetch(`https://en.wikipedia.org/api/rest_v1/page/summary/${encodeURIComponent(plant.title)}`)
         .then(r => r.json())
         .then(data => {
-          if (data.thumbnail) {
-            setTrendingPlants(prev => {
+          if (data.originalimage) {
+            setTopPlants(prev => {
+              const newArr = [...prev];
+              newArr[index].img = data.originalimage.source;
+              return newArr;
+            });
+          } else if (data.thumbnail) {
+            setTopPlants(prev => {
               const newArr = [...prev];
               newArr[index].img = data.thumbnail.source;
               return newArr;
@@ -96,61 +92,66 @@ function ExploreTab({ onSearch }) {
           }
         });
     });
-  }, []); // Run once on mount
+  }, []);
 
   return (
-    <div className="animate-in fade-in duration-500">
-      {/* Plant of the week hero */}
-      <div className="relative h-72 w-full bg-gray-900 overflow-hidden">
-        {heroPlant && (
-          <img 
-            src={heroPlant.img} 
-            alt="Plant of the week" 
-            className="w-full h-full object-cover opacity-80 animate-in fade-in duration-1000"
-          />
-        )}
-        <div className="absolute inset-0 bg-gradient-to-t from-black/90 via-black/30 to-transparent"></div>
-        <div className="absolute bottom-0 left-0 p-6 text-white w-full">
-          <div className="flex items-center gap-2 text-yellow-400 mb-2">
-            <Star size={16} fill="currentColor" />
-            <span className="text-xs font-bold uppercase tracking-widest">Plant of the Week</span>
-          </div>
-          <h2 className="text-3xl font-black mb-1">{heroPlant ? heroPlant.title : 'Loading...'}</h2>
-          <p className="text-sm text-gray-200 mb-3 line-clamp-2">{heroPlant ? heroPlant.desc : ''}</p>
-          <button 
-            onClick={() => onSearch(heroPlant ? heroPlant.searchQuery : 'Bonsai')}
-            className="bg-green-500 hover:bg-green-600 text-white text-sm font-bold py-2 px-4 rounded-lg flex items-center gap-1 transition"
-          >
-            Learn More <ChevronRight size={16} />
-          </button>
-        </div>
-      </div>
+    <div className="animate-in fade-in duration-500 pb-10">
+      <style>{`
+        .hide-scrollbar::-webkit-scrollbar { display: none; }
+        .hide-scrollbar { -ms-overflow-style: none; scrollbar-width: none; }
+      `}</style>
 
-      {/* Trending Section */}
-      <div className="p-4 pt-6">
-        <h3 className="text-xl font-bold text-gray-900 mb-4">Trending Species</h3>
-        <div className="grid grid-cols-2 gap-4">
-          {trendingPlants.map((plant, idx) => (
-            <div 
-              key={idx} 
-              onClick={() => onSearch(plant.label || plant.title)}
-              className="bg-white rounded-2xl overflow-hidden shadow-sm border border-gray-100 active:scale-95 transition cursor-pointer"
-            >
-              <div className="w-full h-32 bg-gray-100 relative">
-                {plant.img ? (
-                  <img src={plant.img} alt={plant.label || plant.title} className="w-full h-full object-cover animate-in fade-in" />
-                ) : (
-                  <div className="absolute inset-0 flex items-center justify-center">
-                    <Loader2 className="animate-spin text-green-300" size={24} />
+      {/* Top 10 Plants Shelf */}
+      <div className="pt-8">
+        <div className="px-4 mb-6 flex flex-col gap-1">
+          <h3 className="text-3xl font-black text-gray-900 flex items-center gap-2">
+            <Star className="text-yellow-400 drop-shadow-sm" fill="currentColor" size={28} /> Top 10 of the Week
+          </h3>
+          <p className="text-gray-500 font-medium text-sm">Swipe to explore the most searched botanical species globally.</p>
+        </div>
+        
+        <div className="relative">
+          {/* Side-shelf fade masks to indicate scrolling */}
+          <div className="absolute left-0 top-0 bottom-0 w-8 bg-gradient-to-r from-gray-50 to-transparent z-10 pointer-events-none"></div>
+          <div className="absolute right-0 top-0 bottom-0 w-16 bg-gradient-to-l from-gray-50 to-transparent z-10 pointer-events-none"></div>
+
+          <div className="flex overflow-x-auto gap-5 snap-x snap-mandatory px-6 pb-8 hide-scrollbar">
+            {topPlants.map((plant, idx) => (
+              <div 
+                key={idx} 
+                onClick={() => onSearch(plant.label || plant.title)}
+                className="snap-center shrink-0 w-[280px] md:w-[320px] bg-white rounded-[2rem] overflow-hidden shadow-2xl shadow-gray-200/50 border border-gray-100 active:scale-95 transition-transform cursor-pointer relative group"
+              >
+                <div className="w-full h-[400px] bg-gray-900 relative overflow-hidden">
+                  {plant.img ? (
+                    <img 
+                      src={plant.img} 
+                      alt={plant.label} 
+                      className="w-full h-full object-cover animate-in fade-in duration-1000 opacity-90 group-hover:scale-110 transition-transform duration-700 ease-out" 
+                    />
+                  ) : (
+                    <div className="absolute inset-0 flex items-center justify-center">
+                      <Loader2 className="animate-spin text-green-500" size={40} />
+                    </div>
+                  )}
+                  <div className="absolute inset-0 bg-gradient-to-t from-black/95 via-black/30 to-transparent"></div>
+                  
+                  {/* Rank Badge */}
+                  <div className="absolute top-5 left-5 bg-white/20 backdrop-blur-xl text-white w-12 h-12 rounded-full flex items-center justify-center font-black text-lg border border-white/30 shadow-[0_4px_10px_rgba(0,0,0,0.3)]">
+                    #{idx + 1}
                   </div>
-                )}
+
+                  <div className="absolute bottom-0 left-0 p-6 w-full transform group-hover:-translate-y-2 transition-transform duration-500 ease-out">
+                    <h4 className="font-black text-white text-3xl mb-2 drop-shadow-lg">{plant.label}</h4>
+                    <p className="text-sm text-gray-200 line-clamp-3 leading-relaxed drop-shadow-md">{plant.desc}</p>
+                    <div className="mt-4 flex items-center gap-2 text-green-400 font-bold text-sm uppercase tracking-widest opacity-0 group-hover:opacity-100 transition-opacity duration-500">
+                      Learn More <ChevronRight size={16} />
+                    </div>
+                  </div>
+                </div>
               </div>
-              <div className="p-3">
-                <h4 className="font-bold text-gray-800 text-sm">{plant.label || plant.title}</h4>
-                <p className="text-xs text-gray-500 mt-1 line-clamp-2">{plant.desc}</p>
-              </div>
-            </div>
-          ))}
+            ))}
+          </div>
         </div>
       </div>
     </div>
