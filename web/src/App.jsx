@@ -1,5 +1,5 @@
 import { useState, useRef, useEffect } from 'react';
-import { Camera, Search, Leaf, Info, Loader2, BookOpen, AlertCircle, Compass, Star, ChevronRight, Image as ImageIcon } from 'lucide-react';
+import { Camera, Search, Leaf, Info, Loader2, BookOpen, AlertCircle, Compass, Star, ChevronRight, Image as ImageIcon, Download } from 'lucide-react';
 
 export default function App() {
   const [activeTab, setActiveTab] = useState('explore'); 
@@ -58,6 +58,24 @@ export default function App() {
   );
 }
 
+const forceDownload = async (url, filename, e) => {
+  e.stopPropagation();
+  try {
+    const response = await fetch(url);
+    const blob = await response.blob();
+    const blobUrl = URL.createObjectURL(blob);
+    const link = document.createElement('a');
+    link.href = blobUrl;
+    link.download = filename || 'plant-image.jpg';
+    document.body.appendChild(link);
+    link.click();
+    document.body.removeChild(link);
+    URL.revokeObjectURL(blobUrl);
+  } catch (err) {
+    window.open(url, '_blank');
+  }
+};
+
 function ExploreTab({ onSearch }) {
   const [topPlants, setTopPlants] = useState([
     { title: 'Bonsai', label: 'Bonsai Tree', desc: 'The ancient Japanese art of growing miniature trees in containers.', img: null },
@@ -71,6 +89,8 @@ function ExploreTab({ onSearch }) {
     { title: 'Zamioculcas', label: 'ZZ Plant', desc: 'Tolerates extremely low light and requires highly infrequent watering.', img: null },
     { title: 'Chlorophytum comosum', label: 'Spider Plant', desc: 'Produces tiny ornamental plantlets on long trailing stems.', img: null },
   ]);
+
+  const carouselRef = useRef(null);
 
   useEffect(() => {
     topPlants.forEach((plant, index) => {
@@ -94,6 +114,22 @@ function ExploreTab({ onSearch }) {
     });
   }, []);
 
+  // Auto-scroll logic
+  useEffect(() => {
+    const interval = setInterval(() => {
+      if (carouselRef.current) {
+        const { scrollLeft, scrollWidth, clientWidth } = carouselRef.current;
+        const maxScroll = scrollWidth - clientWidth;
+        if (scrollLeft >= maxScroll - 10) {
+          carouselRef.current.scrollTo({ left: 0, behavior: 'smooth' });
+        } else {
+          carouselRef.current.scrollBy({ left: 320, behavior: 'smooth' });
+        }
+      }
+    }, 3500); // Scroll every 3.5 seconds
+    return () => clearInterval(interval);
+  }, []);
+
   return (
     <div className="animate-in fade-in duration-500 pb-10">
       <style>{`
@@ -115,7 +151,7 @@ function ExploreTab({ onSearch }) {
           <div className="absolute left-0 top-0 bottom-0 w-8 bg-gradient-to-r from-gray-50 to-transparent z-10 pointer-events-none"></div>
           <div className="absolute right-0 top-0 bottom-0 w-16 bg-gradient-to-l from-gray-50 to-transparent z-10 pointer-events-none"></div>
 
-          <div className="flex overflow-x-auto gap-5 snap-x snap-mandatory px-6 pb-8 hide-scrollbar">
+          <div ref={carouselRef} className="flex overflow-x-auto gap-5 snap-x snap-mandatory px-6 pb-8 hide-scrollbar scroll-smooth">
             {topPlants.map((plant, idx) => (
               <div 
                 key={idx} 
@@ -137,11 +173,22 @@ function ExploreTab({ onSearch }) {
                   <div className="absolute inset-0 bg-gradient-to-t from-black/95 via-black/30 to-transparent"></div>
                   
                   {/* Rank Badge */}
-                  <div className="absolute top-5 left-5 bg-white/20 backdrop-blur-xl text-white w-12 h-12 rounded-full flex items-center justify-center font-black text-lg border border-white/30 shadow-[0_4px_10px_rgba(0,0,0,0.3)]">
+                  <div className="absolute top-5 left-5 bg-white/20 backdrop-blur-xl text-white w-12 h-12 rounded-full flex items-center justify-center font-black text-lg border border-white/30 shadow-[0_4px_10px_rgba(0,0,0,0.3)] z-10">
                     #{idx + 1}
                   </div>
 
-                  <div className="absolute bottom-0 left-0 p-6 w-full transform group-hover:-translate-y-2 transition-transform duration-500 ease-out">
+                  {/* Download Button */}
+                  {plant.img && (
+                    <button 
+                      onClick={(e) => forceDownload(plant.img, `${plant.title.replace(/ /g, '_')}.jpg`, e)}
+                      className="absolute top-5 right-5 bg-black/40 hover:bg-green-500 backdrop-blur-md text-white w-12 h-12 rounded-full flex items-center justify-center transition-colors border border-white/20 shadow-lg z-20"
+                      title="Download Image"
+                    >
+                      <Download size={20} />
+                    </button>
+                  )}
+
+                  <div className="absolute bottom-0 left-0 p-6 w-full transform group-hover:-translate-y-2 transition-transform duration-500 ease-out z-10">
                     <h4 className="font-black text-white text-3xl mb-2 drop-shadow-lg">{plant.label}</h4>
                     <p className="text-sm text-gray-200 line-clamp-3 leading-relaxed drop-shadow-md">{plant.desc}</p>
                     <div className="mt-4 flex items-center gap-2 text-green-400 font-bold text-sm uppercase tracking-widest opacity-0 group-hover:opacity-100 transition-opacity duration-500">
@@ -535,10 +582,19 @@ function SearchTab({ initialQuery }) {
           
           {/* Main Hero Image */}
           {wikiData.originalimage ? (
-            <div className="w-full h-80 relative bg-gray-900">
+            <div className="w-full h-80 relative bg-gray-900 group">
               <img src={wikiData.originalimage.source} alt={wikiData.title} className="w-full h-full object-cover opacity-90" />
-              <div className="absolute inset-0 bg-gradient-to-t from-black/80 to-transparent"></div>
-              <div className="absolute bottom-0 left-0 p-6 w-full">
+              <div className="absolute inset-0 bg-gradient-to-t from-black/80 to-transparent pointer-events-none"></div>
+              
+              <button 
+                onClick={(e) => forceDownload(wikiData.originalimage.source, `${wikiData.title.replace(/ /g, '_')}_Hero.jpg`, e)}
+                className="absolute top-4 right-4 bg-black/40 hover:bg-green-500 backdrop-blur-md text-white p-3 rounded-full transition-colors border border-white/20 shadow-lg opacity-0 group-hover:opacity-100 z-20"
+                title="Download High-Res Image"
+              >
+                <Download size={20} />
+              </button>
+
+              <div className="absolute bottom-0 left-0 p-6 w-full pointer-events-none">
                 <h3 className="text-4xl font-black text-white drop-shadow-md mb-1">{wikiData.title}</h3>
                 {wikiData.description && (
                   <p className="text-green-300 font-bold uppercase tracking-widest text-sm drop-shadow-md flex items-center gap-2">
@@ -572,8 +628,16 @@ function SearchTab({ initialQuery }) {
                 </h4>
                 <div className="grid grid-cols-2 gap-3">
                   {wikiMedia.map((src, idx) => (
-                    <div key={idx} className="rounded-xl overflow-hidden shadow-sm h-40 bg-gray-100">
-                      <img src={src} alt="Gallery item" className="w-full h-full object-cover hover:scale-110 transition duration-500 cursor-pointer" />
+                    <div key={idx} className="rounded-xl overflow-hidden shadow-sm h-40 bg-gray-100 relative group">
+                      <img src={src} alt="Gallery item" className="w-full h-full object-cover group-hover:scale-110 transition duration-500" />
+                      <div className="absolute inset-0 bg-black/0 group-hover:bg-black/20 transition duration-300"></div>
+                      <button 
+                        onClick={(e) => forceDownload(src, `${wikiData.title.replace(/ /g, '_')}_Gallery_${idx+1}.jpg`, e)}
+                        className="absolute bottom-2 right-2 bg-black/50 hover:bg-green-500 backdrop-blur-md text-white p-2 rounded-full transition-colors border border-white/20 opacity-0 group-hover:opacity-100"
+                        title="Download Image"
+                      >
+                        <Download size={16} />
+                      </button>
                     </div>
                   ))}
                 </div>
