@@ -1,10 +1,26 @@
 import { useState, useRef, useEffect } from 'react';
-import { Camera, Search, Leaf, Info, Loader2, BookOpen, AlertCircle, Compass, Star, ChevronRight, Image as ImageIcon, Download, Sparkles, ArrowRight, X, Maximize2 } from 'lucide-react';
+import { Camera, Search, Leaf, Loader2, BookOpen, AlertCircle, Compass, Star, ChevronRight, Image as ImageIcon, Download, Sparkles, ArrowRight, X, Maximize2, User, Heart } from 'lucide-react';
+import { supabase } from './lib/supabase';
+import AuthModal from './components/AuthModal';
+import ProfileTab from './components/ProfileTab';
 
 export default function App() {
   const [activeTab, setActiveTab] = useState('explore'); 
   const [autoSearchQuery, setAutoSearchQuery] = useState('');
   const [fullscreenImage, setFullscreenImage] = useState(null);
+  
+  const [user, setUser] = useState(null);
+  const [showAuthModal, setShowAuthModal] = useState(false);
+
+  useEffect(() => {
+    supabase.auth.getSession().then(({ data: { session } }) => {
+      setUser(session?.user ?? null);
+    });
+    const { data: { subscription } } = supabase.auth.onAuthStateChange((_event, session) => {
+      setUser(session?.user ?? null);
+    });
+    return () => subscription.unsubscribe();
+  }, []);
 
   const handleExploreSearch = (query) => {
     setAutoSearchQuery(query);
@@ -28,7 +44,8 @@ export default function App() {
       <main className="flex-1 max-w-2xl mx-auto w-full">
         {activeTab === 'explore' && <ExploreTab onSearch={handleExploreSearch} setFullscreenImage={setFullscreenImage} />}
         {activeTab === 'scan' && <ScanTab />}
-        {activeTab === 'search' && <SearchTab initialQuery={autoSearchQuery} setFullscreenImage={setFullscreenImage} />}
+        {activeTab === 'search' && <SearchTab initialQuery={autoSearchQuery} setFullscreenImage={setFullscreenImage} user={user} onRequireAuth={() => setShowAuthModal(true)} />}
+        {activeTab === 'profile' && <ProfileTab user={user} onLogout={() => setActiveTab('explore')} setFullscreenImage={setFullscreenImage} forceDownload={forceDownload} onSearch={handleExploreSearch} />}
       </main>
 
       {/* Bottom Navigation */}
@@ -53,6 +70,16 @@ export default function App() {
         >
           <Search size={24} strokeWidth={activeTab === 'search' ? 2.5 : 2} />
           <span className="text-xs font-semibold">Wiki</span>
+        </button>
+        <button 
+          onClick={() => {
+            if (user) setActiveTab('profile');
+            else setShowAuthModal(true);
+          }} 
+          className={`flex flex-col items-center gap-1 w-20 transition ${activeTab === 'profile' ? 'text-green-600' : 'text-gray-400 hover:text-green-500'}`}
+        >
+          <User size={24} strokeWidth={activeTab === 'profile' ? 2.5 : 2} />
+          <span className="text-xs font-semibold">Profile</span>
         </button>
       </nav>
 
@@ -83,6 +110,17 @@ export default function App() {
             <Download size={20} /> Save High-Res
           </button>
         </div>
+      )}
+
+      {/* Auth Modal */}
+      {showAuthModal && (
+        <AuthModal 
+          onClose={() => setShowAuthModal(false)} 
+          onLogin={() => {
+            setShowAuthModal(false);
+            if (activeTab === 'explore') setActiveTab('profile');
+          }}
+        />
       )}
     </div>
   );
@@ -534,7 +572,7 @@ function ScanTab() {
   );
 }
 
-function SearchTab({ initialQuery, setFullscreenImage }) {
+function SearchTab({ initialQuery, setFullscreenImage, user, onRequireAuth }) {
   const [query, setQuery] = useState(initialQuery || '');
   const [suggestions, setSuggestions] = useState([]);
   const [showSuggestions, setShowSuggestions] = useState(false);
@@ -641,6 +679,26 @@ function SearchTab({ initialQuery, setFullscreenImage }) {
     executeSearch(query);
   };
 
+  const handleSavePlant = async () => {
+    if (!user) {
+      onRequireAuth();
+      return;
+    }
+    try {
+      const { error } = await supabase.from('saved_plants').insert([{
+        user_id: user.id,
+        title: wikiData.title,
+        label: wikiData.description?.split(' ')[0] || 'Plant', // fallback
+        description: wikiData.extract,
+        image_url: wikiData.originalimage?.source || wikiData.thumbnail?.source || null
+      }]);
+      if (error) throw error;
+      alert('Saved to your collection!');
+    } catch (err) {
+      alert('Error saving plant: ' + err.message);
+    }
+  };
+
   return (
     <div className="flex flex-col gap-6 p-4 animate-in fade-in duration-500">
       <div className="text-center mt-2">
@@ -723,6 +781,13 @@ function SearchTab({ initialQuery, setFullscreenImage }) {
                 >
                   <Download size={20} />
                 </button>
+                <button 
+                  onClick={(e) => { e.stopPropagation(); handleSavePlant(); }}
+                  className="bg-black/40 hover:bg-red-500 backdrop-blur-md text-white p-3 rounded-full transition-colors border border-white/20 shadow-lg"
+                  title="Save to Collection"
+                >
+                  <Heart size={20} />
+                </button>
               </div>
 
               <div className="absolute bottom-0 left-0 p-6 w-full pointer-events-none">
@@ -735,13 +800,20 @@ function SearchTab({ initialQuery, setFullscreenImage }) {
               </div>
             </div>
           ) : (
-            <div className="p-6 bg-green-50 border-b border-green-100">
-              <h3 className="text-4xl font-black text-green-900 mb-1">{wikiData.title}</h3>
+            <div className="p-6 bg-green-50 border-b border-green-100 relative">
+              <h3 className="text-4xl font-black text-green-900 mb-1 pr-12">{wikiData.title}</h3>
               {wikiData.description && (
                 <p className="text-green-600 font-bold uppercase tracking-widest text-sm flex items-center gap-2">
                   <Leaf size={16} /> {wikiData.description}
                 </p>
               )}
+              <button 
+                onClick={handleSavePlant}
+                className="absolute top-6 right-6 bg-white hover:bg-red-500 text-gray-400 hover:text-white p-3 rounded-full transition-colors border border-gray-200 shadow-sm"
+                title="Save to Collection"
+              >
+                <Heart size={20} />
+              </button>
             </div>
           )}
 
