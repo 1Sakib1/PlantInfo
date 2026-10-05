@@ -240,14 +240,48 @@ function ScanTab() {
         </div>
       ) : (
         <div className="space-y-4">
+          <style>{`
+            @keyframes scan {
+              0% { top: 0%; opacity: 0; }
+              10% { opacity: 1; }
+              50% { top: 100%; opacity: 1; }
+              90% { opacity: 1; }
+              100% { top: 0%; opacity: 0; }
+            }
+          `}</style>
+          
           <div className="relative rounded-3xl overflow-hidden shadow-lg border border-gray-200 bg-black">
-            <img src={imageSrc} alt="Preview" className="w-full max-h-[60vh] object-contain" />
-            <button 
-              onClick={() => { setImageSrc(null); setImageFile(null); setResult(null); setError(null); }}
-              className="absolute top-4 right-4 bg-black/50 text-white px-3 py-1 rounded-full text-xs font-bold backdrop-blur-md"
-            >
-              Retake
-            </button>
+            <img 
+              src={imageSrc} 
+              alt="Preview" 
+              className={`w-full max-h-[60vh] object-contain transition duration-500 ${loading ? 'opacity-50 blur-[2px] saturate-50' : ''}`} 
+            />
+            
+            {loading && (
+              <>
+                <div className="absolute left-0 w-full h-[2px] bg-green-400 shadow-[0_0_15px_4px_rgba(74,222,128,1)] animate-[scan_2.5s_ease-in-out_infinite] z-10" />
+                <div className="absolute inset-0 flex flex-col items-center justify-center z-20">
+                  <div className="relative">
+                    <div className="absolute inset-0 bg-green-400 rounded-full animate-ping opacity-75"></div>
+                    <div className="relative bg-green-600 text-white p-4 rounded-full shadow-[0_0_30px_rgba(22,163,74,0.8)] border-2 border-green-300">
+                      <Leaf size={32} className="animate-pulse" />
+                    </div>
+                  </div>
+                  <p className="mt-6 text-white font-black tracking-widest uppercase text-sm drop-shadow-[0_2px_4px_rgba(0,0,0,0.8)] animate-pulse">
+                    Analyzing Pattern...
+                  </p>
+                </div>
+              </>
+            )}
+
+            {!loading && (
+              <button 
+                onClick={() => { setImageSrc(null); setImageFile(null); setResult(null); setError(null); }}
+                className="absolute top-4 right-4 bg-black/50 text-white px-3 py-1 rounded-full text-xs font-bold backdrop-blur-md"
+              >
+                Retake
+              </button>
+            )}
           </div>
           
           {!result && !loading && (
@@ -257,13 +291,6 @@ function ScanTab() {
             >
               <Search /> Identify Plant
             </button>
-          )}
-
-          {loading && (
-            <div className="flex flex-col items-center py-8 text-green-600">
-              <Loader2 size={48} className="animate-spin mb-4" />
-              <p className="font-bold animate-pulse">AI Botanist is analyzing...</p>
-            </div>
           )}
 
           {error && (
