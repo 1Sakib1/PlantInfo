@@ -90,6 +90,7 @@ function ExploreTab({ onSearch }) {
     { title: 'Chlorophytum comosum', label: 'Spider Plant', desc: 'Produces tiny ornamental plantlets on long trailing stems.', img: null },
   ]);
 
+  const [triviaFlipped, setTriviaFlipped] = useState(false);
   const carouselRef = useRef(null);
 
   useEffect(() => {
@@ -126,28 +127,55 @@ function ExploreTab({ onSearch }) {
           carouselRef.current.scrollBy({ left: 320, behavior: 'smooth' });
         }
       }
-    }, 3500); // Scroll every 3.5 seconds
+    }, 3500);
     return () => clearInterval(interval);
   }, []);
 
   return (
-    <div className="animate-in fade-in duration-500 pb-10">
+    <div className="animate-in fade-in duration-500 pb-10 relative overflow-hidden">
       <style>{`
         .hide-scrollbar::-webkit-scrollbar { display: none; }
         .hide-scrollbar { -ms-overflow-style: none; scrollbar-width: none; }
+        
+        @keyframes fall {
+          0% { transform: translateY(-100px) rotate(0deg) translateX(0); opacity: 0; }
+          10% { opacity: 1; }
+          90% { opacity: 1; }
+          100% { transform: translateY(100vh) rotate(360deg) translateX(100px); opacity: 0; }
+        }
+        
+        .perspective-1000 { perspective: 1000px; }
+        .preserve-3d { transform-style: preserve-3d; }
+        .backface-hidden { backface-visibility: hidden; }
+        .rotate-y-180 { transform: rotateY(180deg); }
       `}</style>
 
-      {/* Top 10 Plants Shelf */}
-      <div className="pt-8">
-        <div className="px-4 mb-6 flex flex-col gap-1">
+      {/* Falling Leaves Background Animation */}
+      <div className="absolute inset-0 pointer-events-none z-0">
+        {[...Array(8)].map((_, i) => (
+          <Leaf 
+            key={i}
+            className="absolute text-green-500/10"
+            size={Math.random() * 20 + 20}
+            style={{
+              left: \`\${Math.random() * 100}%\`,
+              top: '-10%',
+              animation: \`fall \${Math.random() * 5 + 10}s linear infinite\`,
+              animationDelay: \`\${Math.random() * 5}s\`
+            }}
+          />
+        ))}
+      </div>
+
+      <div className="pt-8 relative z-10">
+        <div className="px-6 mb-6 flex flex-col gap-1">
           <h3 className="text-3xl font-black text-gray-900 flex items-center gap-2">
-            <Star className="text-yellow-400 drop-shadow-sm" fill="currentColor" size={28} /> Top 10 of the Week
+            <Star className="text-yellow-400 drop-shadow-sm animate-pulse" fill="currentColor" size={28} /> Top 10 of the Week
           </h3>
           <p className="text-gray-500 font-medium text-sm">Swipe to explore the most searched botanical species globally.</p>
         </div>
         
         <div className="relative">
-          {/* Side-shelf fade masks to indicate scrolling */}
           <div className="absolute left-0 top-0 bottom-0 w-8 bg-gradient-to-r from-gray-50 to-transparent z-10 pointer-events-none"></div>
           <div className="absolute right-0 top-0 bottom-0 w-16 bg-gradient-to-l from-gray-50 to-transparent z-10 pointer-events-none"></div>
 
@@ -172,15 +200,13 @@ function ExploreTab({ onSearch }) {
                   )}
                   <div className="absolute inset-0 bg-gradient-to-t from-black/95 via-black/30 to-transparent"></div>
                   
-                  {/* Rank Badge */}
                   <div className="absolute top-5 left-5 bg-white/20 backdrop-blur-xl text-white w-12 h-12 rounded-full flex items-center justify-center font-black text-lg border border-white/30 shadow-[0_4px_10px_rgba(0,0,0,0.3)] z-10">
                     #{idx + 1}
                   </div>
 
-                  {/* Download Button */}
                   {plant.img && (
                     <button 
-                      onClick={(e) => forceDownload(plant.img, `${plant.title.replace(/ /g, '_')}.jpg`, e)}
+                      onClick={(e) => forceDownload(plant.img, \`\${plant.title.replace(/ /g, '_')}.jpg\`, e)}
                       className="absolute top-5 right-5 bg-black/40 hover:bg-green-500 backdrop-blur-md text-white w-12 h-12 rounded-full flex items-center justify-center transition-colors border border-white/20 shadow-lg z-20"
                       title="Download Image"
                     >
@@ -200,6 +226,33 @@ function ExploreTab({ onSearch }) {
             ))}
           </div>
         </div>
+
+        {/* 3D Interactive Trivia Card */}
+        <div className="px-6 py-4 perspective-1000 z-10 relative">
+          <h3 className="font-black text-gray-900 mb-3 flex items-center gap-2 text-lg">
+            <Compass className="text-blue-500" /> Interactive Discovery
+          </h3>
+          <div 
+            onClick={() => setTriviaFlipped(!triviaFlipped)}
+            className={\`relative w-full h-40 transition-transform duration-700 preserve-3d cursor-pointer active:scale-95 \${triviaFlipped ? 'rotate-y-180' : ''}\`}
+          >
+            {/* Front of Card */}
+            <div className="absolute w-full h-full backface-hidden bg-gradient-to-br from-green-400 to-green-600 rounded-3xl shadow-[0_10px_30px_rgba(34,197,94,0.3)] p-6 flex flex-col justify-center items-center text-white text-center border-2 border-green-300/50">
+              <BookOpen size={36} className="mb-2 opacity-90 animate-bounce" />
+              <h4 className="font-black text-2xl mb-1 drop-shadow-md">Daily Trivia</h4>
+              <p className="text-sm font-bold text-green-100 uppercase tracking-widest drop-shadow-sm">Tap to reveal!</p>
+            </div>
+
+            {/* Back of Card */}
+            <div className="absolute w-full h-full backface-hidden rotate-y-180 bg-white border-2 border-green-200 rounded-3xl shadow-[0_10px_30px_rgba(0,0,0,0.05)] p-6 flex flex-col justify-center items-center text-center">
+              <p className="text-gray-800 font-bold text-sm leading-relaxed">
+                The <span className="text-green-600 font-black">Titan Arum</span> produces the largest unbranched inflorescence in the world and smells exactly like rotting meat!
+              </p>
+              <span className="mt-4 text-[10px] text-gray-400 uppercase tracking-widest font-black">Tap to flip back</span>
+            </div>
+          </div>
+        </div>
+
       </div>
     </div>
   );
