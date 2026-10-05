@@ -1,5 +1,5 @@
 import { useState, useRef, useEffect } from 'react';
-import { Camera, Search, Leaf, Info, Loader2, BookOpen, AlertCircle, Compass, Star, ChevronRight, Image as ImageIcon, Download } from 'lucide-react';
+import { Camera, Search, Leaf, Info, Loader2, BookOpen, AlertCircle, Compass, Star, ChevronRight, Image as ImageIcon, Download, Sparkles, ArrowRight } from 'lucide-react';
 
 export default function App() {
   const [activeTab, setActiveTab] = useState('explore'); 
@@ -168,57 +168,70 @@ function ExploreTab({ onSearch }) {
       </div>
 
       <div className="pt-8 relative z-10">
-        <div className="px-6 mb-6 flex flex-col gap-1">
-          <h3 className="text-3xl font-black text-gray-900 flex items-center gap-2">
-            <Star className="text-yellow-400 drop-shadow-sm animate-pulse" fill="currentColor" size={28} /> Top 10 of the Week
+        <div className="px-6 mb-8 flex flex-col gap-2">
+          <div className="inline-flex items-center gap-2 bg-green-100 text-green-700 px-3 py-1 rounded-full text-xs font-black uppercase tracking-widest w-max mb-1 shadow-sm">
+            <Sparkles size={14} className="animate-pulse" /> Trending Now
+          </div>
+          <h3 className="text-4xl md:text-5xl font-black text-gray-900 tracking-tight">
+            Top 10 Species.
           </h3>
-          <p className="text-gray-500 font-medium text-sm">Swipe to explore the most searched botanical species globally.</p>
+          <p className="text-gray-500 font-medium text-base md:text-lg">The most beautifully striking botanical wonders sweeping the globe this week.</p>
         </div>
         
         <div className="relative">
           <div className="absolute left-0 top-0 bottom-0 w-8 bg-gradient-to-r from-gray-50 to-transparent z-10 pointer-events-none"></div>
           <div className="absolute right-0 top-0 bottom-0 w-16 bg-gradient-to-l from-gray-50 to-transparent z-10 pointer-events-none"></div>
 
-          <div ref={carouselRef} className="flex overflow-x-auto gap-5 snap-x snap-mandatory px-6 pb-8 hide-scrollbar scroll-smooth">
+          <div ref={carouselRef} className="flex overflow-x-auto gap-6 snap-x snap-mandatory px-6 pb-12 hide-scrollbar scroll-smooth">
             {topPlants.map((plant, idx) => (
               <div 
                 key={idx} 
                 onClick={() => onSearch(plant.label || plant.title)}
-                className="snap-center shrink-0 w-[280px] md:w-[320px] bg-white rounded-[2rem] overflow-hidden shadow-2xl shadow-gray-200/50 border border-gray-100 active:scale-95 transition-transform cursor-pointer relative group"
+                className="snap-center shrink-0 w-[85vw] max-w-[340px] aspect-[4/5] bg-gray-900 rounded-[2.5rem] overflow-hidden relative group cursor-pointer border border-black/5 shadow-[0_20px_40px_-15px_rgba(0,0,0,0.15)] hover:shadow-[0_30px_60px_-15px_rgba(34,197,94,0.4)] transition-all duration-700 ease-out md:hover:-translate-y-3"
               >
-                <div className="w-full h-[400px] bg-gray-900 relative overflow-hidden">
-                  {plant.img ? (
-                    <img 
-                      src={plant.img} 
-                      alt={plant.label} 
-                      className="w-full h-full object-cover animate-in fade-in duration-1000 opacity-90 group-hover:scale-110 transition-transform duration-700 ease-out" 
-                    />
-                  ) : (
-                    <div className="absolute inset-0 flex items-center justify-center">
-                      <Loader2 className="animate-spin text-green-500" size={40} />
-                    </div>
-                  )}
-                  <div className="absolute inset-0 bg-gradient-to-t from-black/95 via-black/30 to-transparent"></div>
-                  
-                  <div className="absolute top-5 left-5 bg-white/20 backdrop-blur-xl text-white w-12 h-12 rounded-full flex items-center justify-center font-black text-lg border border-white/30 shadow-[0_4px_10px_rgba(0,0,0,0.3)] z-10">
-                    #{idx + 1}
+                {/* Background Image with extreme zoom on hover */}
+                {plant.img ? (
+                  <img 
+                    src={plant.img} 
+                    alt={plant.label} 
+                    className="absolute inset-0 w-full h-full object-cover transition-transform duration-[1.5s] ease-out group-hover:scale-110 opacity-90 group-hover:opacity-100" 
+                  />
+                ) : (
+                  <div className="absolute inset-0 flex items-center justify-center bg-gray-800">
+                    <Loader2 className="animate-spin text-green-500" size={40} />
                   </div>
+                )}
+                
+                {/* Multi-layered elegant gradient */}
+                <div className="absolute inset-0 bg-gradient-to-b from-black/20 via-transparent to-black/95 opacity-80 group-hover:opacity-100 transition-opacity duration-700"></div>
+                
+                {/* Sleek Pill Rank Badge */}
+                <div className="absolute top-6 left-6 bg-white/20 backdrop-blur-md border border-white/20 text-white px-4 py-1.5 rounded-full font-bold text-xs tracking-widest shadow-xl z-20 flex items-center gap-2">
+                  <Star size={14} className="text-yellow-400 drop-shadow-md" fill="currentColor"/> #{idx + 1}
+                </div>
 
-                  {plant.img && (
-                    <button 
-                      onClick={(e) => forceDownload(plant.img, \`\${plant.title.replace(/ /g, '_')}.jpg\`, e)}
-                      className="absolute top-5 right-5 bg-black/40 hover:bg-green-500 backdrop-blur-md text-white w-12 h-12 rounded-full flex items-center justify-center transition-colors border border-white/20 shadow-lg z-20"
-                      title="Download Image"
-                    >
-                      <Download size={20} />
-                    </button>
-                  )}
+                {/* Download Button - minimal glass */}
+                {plant.img && (
+                  <button 
+                    onClick={(e) => forceDownload(plant.img, `${plant.title.replace(/ /g, '_')}.jpg`, e)}
+                    className="absolute top-6 right-6 bg-black/20 hover:bg-green-500 backdrop-blur-xl border border-white/10 text-white w-10 h-10 rounded-full flex items-center justify-center transition-all duration-300 z-20 shadow-lg"
+                    title="Download Image"
+                  >
+                    <Download size={18} />
+                  </button>
+                )}
 
-                  <div className="absolute bottom-0 left-0 p-6 w-full transform group-hover:-translate-y-2 transition-transform duration-500 ease-out z-10">
-                    <h4 className="font-black text-white text-3xl mb-2 drop-shadow-lg">{plant.label}</h4>
-                    <p className="text-sm text-gray-200 line-clamp-3 leading-relaxed drop-shadow-md">{plant.desc}</p>
-                    <div className="mt-4 flex items-center gap-2 text-green-400 font-bold text-sm uppercase tracking-widest opacity-0 group-hover:opacity-100 transition-opacity duration-500">
-                      Learn More <ChevronRight size={16} />
+                {/* Ultra-premium text content */}
+                <div className="absolute bottom-0 left-0 w-full p-8 translate-y-4 group-hover:translate-y-0 transition-transform duration-500 ease-[cubic-bezier(0.25,1,0.5,1)] z-20">
+                  <h4 className="font-extrabold text-white text-3xl md:text-4xl tracking-tight leading-none mb-3 drop-shadow-lg">{plant.label}</h4>
+                  <p className="text-white/80 text-sm font-medium line-clamp-2 leading-relaxed opacity-0 group-hover:opacity-100 transition-opacity duration-500 delay-100 drop-shadow-md">
+                    {plant.desc}
+                  </p>
+                  
+                  {/* Animated button block */}
+                  <div className="mt-4 overflow-hidden max-h-0 group-hover:max-h-12 transition-all duration-500 ease-in-out opacity-0 group-hover:opacity-100">
+                    <div className="inline-flex items-center gap-2 bg-green-500 text-white px-5 py-2.5 rounded-full text-sm font-bold shadow-lg hover:bg-green-400 transition-colors mt-1">
+                      Read Encyclopedia <ArrowRight size={16} />
                     </div>
                   </div>
                 </div>
