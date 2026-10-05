@@ -1,9 +1,10 @@
 import { useState, useRef, useEffect } from 'react';
-import { Camera, Search, Leaf, Info, Loader2, BookOpen, AlertCircle, Compass, Star, ChevronRight, Image as ImageIcon, Download, Sparkles, ArrowRight } from 'lucide-react';
+import { Camera, Search, Leaf, Info, Loader2, BookOpen, AlertCircle, Compass, Star, ChevronRight, Image as ImageIcon, Download, Sparkles, ArrowRight, X, Maximize2 } from 'lucide-react';
 
 export default function App() {
   const [activeTab, setActiveTab] = useState('explore'); 
   const [autoSearchQuery, setAutoSearchQuery] = useState('');
+  const [fullscreenImage, setFullscreenImage] = useState(null);
 
   const handleExploreSearch = (query) => {
     setAutoSearchQuery(query);
@@ -25,9 +26,9 @@ export default function App() {
 
       {/* Main Content */}
       <main className="flex-1 max-w-2xl mx-auto w-full">
-        {activeTab === 'explore' && <ExploreTab onSearch={handleExploreSearch} />}
+        {activeTab === 'explore' && <ExploreTab onSearch={handleExploreSearch} setFullscreenImage={setFullscreenImage} />}
         {activeTab === 'scan' && <ScanTab />}
-        {activeTab === 'search' && <SearchTab initialQuery={autoSearchQuery} />}
+        {activeTab === 'search' && <SearchTab initialQuery={autoSearchQuery} setFullscreenImage={setFullscreenImage} />}
       </main>
 
       {/* Bottom Navigation */}
@@ -54,6 +55,35 @@ export default function App() {
           <span className="text-xs font-semibold">Wiki</span>
         </button>
       </nav>
+
+      {/* Global Fullscreen Lightbox */}
+      {fullscreenImage && (
+        <div 
+          className="fixed inset-0 z-[100] bg-black/95 backdrop-blur-2xl flex items-center justify-center p-4 animate-in fade-in duration-300"
+          onClick={() => setFullscreenImage(null)}
+        >
+          <button 
+            className="absolute top-6 right-6 text-white/70 hover:text-white bg-white/10 hover:bg-white/20 rounded-full p-2 transition-all z-50 cursor-pointer"
+            onClick={(e) => { e.stopPropagation(); setFullscreenImage(null); }}
+          >
+            <X size={32} />
+          </button>
+          
+          <img 
+            src={fullscreenImage} 
+            className="max-w-full max-h-[85vh] object-contain rounded-xl shadow-[0_0_50px_rgba(0,0,0,0.5)] animate-in zoom-in-95 duration-300" 
+            alt="Fullscreen View"
+            onClick={(e) => e.stopPropagation()}
+          />
+          
+          <button 
+            className="absolute bottom-10 bg-white/10 hover:bg-green-500 backdrop-blur-md border border-white/20 text-white px-6 py-3 rounded-full font-bold flex items-center gap-2 transition-all shadow-xl z-50 cursor-pointer"
+            onClick={(e) => forceDownload(fullscreenImage, 'plant-fullscreen-image.jpg', e)}
+          >
+            <Download size={20} /> Save High-Res
+          </button>
+        </div>
+      )}
     </div>
   );
 }
@@ -76,7 +106,7 @@ const forceDownload = async (url, filename, e) => {
   }
 };
 
-function ExploreTab({ onSearch }) {
+function ExploreTab({ onSearch, setFullscreenImage }) {
   const [topPlants, setTopPlants] = useState([
     { title: 'Bonsai', label: 'Bonsai Tree', desc: 'The ancient Japanese art of growing miniature trees in containers.', img: null },
     { title: 'Monstera deliciosa', label: 'Monstera', desc: 'Famous for its natural leaf holes and tropical vibe.', img: null },
@@ -210,15 +240,24 @@ function ExploreTab({ onSearch }) {
                   <Star size={14} className="text-yellow-400 drop-shadow-md" fill="currentColor"/> #{idx + 1}
                 </div>
 
-                {/* Download Button - minimal glass */}
+                {/* Top Right Action Buttons */}
                 {plant.img && (
-                  <button 
-                    onClick={(e) => forceDownload(plant.img, `${plant.title.replace(/ /g, '_')}.jpg`, e)}
-                    className="absolute top-6 right-6 bg-black/20 hover:bg-green-500 backdrop-blur-xl border border-white/10 text-white w-10 h-10 rounded-full flex items-center justify-center transition-all duration-300 z-20 shadow-lg"
-                    title="Download Image"
-                  >
-                    <Download size={18} />
-                  </button>
+                  <div className="absolute top-6 right-6 flex flex-col gap-3 z-20">
+                    <button 
+                      onClick={(e) => { e.stopPropagation(); setFullscreenImage(plant.img); }}
+                      className="bg-black/20 hover:bg-blue-500 backdrop-blur-xl border border-white/10 text-white w-10 h-10 rounded-full flex items-center justify-center transition-all duration-300 shadow-lg"
+                      title="Fullscreen Image"
+                    >
+                      <Maximize2 size={16} />
+                    </button>
+                    <button 
+                      onClick={(e) => forceDownload(plant.img, `${plant.title.replace(/ /g, '_')}.jpg`, e)}
+                      className="bg-black/20 hover:bg-green-500 backdrop-blur-xl border border-white/10 text-white w-10 h-10 rounded-full flex items-center justify-center transition-all duration-300 shadow-lg"
+                      title="Download Image"
+                    >
+                      <Download size={18} />
+                    </button>
+                  </div>
                 )}
 
                 {/* Ultra-premium text content */}
@@ -495,7 +534,7 @@ function ScanTab() {
   );
 }
 
-function SearchTab({ initialQuery }) {
+function SearchTab({ initialQuery, setFullscreenImage }) {
   const [query, setQuery] = useState(initialQuery || '');
   const [suggestions, setSuggestions] = useState([]);
   const [showSuggestions, setShowSuggestions] = useState(false);
@@ -669,13 +708,22 @@ function SearchTab({ initialQuery }) {
               <img src={wikiData.originalimage.source} alt={wikiData.title} className="w-full h-full object-cover opacity-90" />
               <div className="absolute inset-0 bg-gradient-to-t from-black/80 to-transparent pointer-events-none"></div>
               
-              <button 
-                onClick={(e) => forceDownload(wikiData.originalimage.source, `${wikiData.title.replace(/ /g, '_')}_Hero.jpg`, e)}
-                className="absolute top-4 right-4 bg-black/40 hover:bg-green-500 backdrop-blur-md text-white p-3 rounded-full transition-colors border border-white/20 shadow-lg opacity-0 group-hover:opacity-100 z-20"
-                title="Download High-Res Image"
-              >
-                <Download size={20} />
-              </button>
+              <div className="absolute top-4 right-4 flex flex-col gap-2 z-20 opacity-0 group-hover:opacity-100 transition-opacity">
+                <button 
+                  onClick={(e) => { e.stopPropagation(); setFullscreenImage(wikiData.originalimage.source); }}
+                  className="bg-black/40 hover:bg-blue-500 backdrop-blur-md text-white p-3 rounded-full transition-colors border border-white/20 shadow-lg"
+                  title="Fullscreen Image"
+                >
+                  <Maximize2 size={20} />
+                </button>
+                <button 
+                  onClick={(e) => forceDownload(wikiData.originalimage.source, `${wikiData.title.replace(/ /g, '_')}_Hero.jpg`, e)}
+                  className="bg-black/40 hover:bg-green-500 backdrop-blur-md text-white p-3 rounded-full transition-colors border border-white/20 shadow-lg"
+                  title="Download High-Res Image"
+                >
+                  <Download size={20} />
+                </button>
+              </div>
 
               <div className="absolute bottom-0 left-0 p-6 w-full pointer-events-none">
                 <h3 className="text-4xl font-black text-white drop-shadow-md mb-1">{wikiData.title}</h3>
@@ -711,16 +759,26 @@ function SearchTab({ initialQuery }) {
                 </h4>
                 <div className="grid grid-cols-2 gap-3">
                   {wikiMedia.map((src, idx) => (
-                    <div key={idx} className="rounded-xl overflow-hidden shadow-sm h-40 bg-gray-100 relative group">
+                    <div key={idx} className="rounded-xl overflow-hidden shadow-sm h-40 bg-gray-100 relative group cursor-pointer" onClick={() => setFullscreenImage(src)}>
                       <img src={src} alt="Gallery item" className="w-full h-full object-cover group-hover:scale-110 transition duration-500" />
                       <div className="absolute inset-0 bg-black/0 group-hover:bg-black/20 transition duration-300"></div>
-                      <button 
-                        onClick={(e) => forceDownload(src, `${wikiData.title.replace(/ /g, '_')}_Gallery_${idx+1}.jpg`, e)}
-                        className="absolute bottom-2 right-2 bg-black/50 hover:bg-green-500 backdrop-blur-md text-white p-2 rounded-full transition-colors border border-white/20 opacity-0 group-hover:opacity-100"
-                        title="Download Image"
-                      >
-                        <Download size={16} />
-                      </button>
+                      
+                      <div className="absolute bottom-2 right-2 flex gap-2 opacity-0 group-hover:opacity-100 transition-opacity">
+                        <button 
+                          onClick={(e) => { e.stopPropagation(); setFullscreenImage(src); }}
+                          className="bg-black/50 hover:bg-blue-500 backdrop-blur-md text-white p-2 rounded-full transition-colors border border-white/20"
+                          title="Fullscreen Image"
+                        >
+                          <Maximize2 size={16} />
+                        </button>
+                        <button 
+                          onClick={(e) => forceDownload(src, `${wikiData.title.replace(/ /g, '_')}_Gallery_${idx+1}.jpg`, e)}
+                          className="bg-black/50 hover:bg-green-500 backdrop-blur-md text-white p-2 rounded-full transition-colors border border-white/20"
+                          title="Download Image"
+                        >
+                          <Download size={16} />
+                        </button>
+                      </div>
                     </div>
                   ))}
                 </div>
