@@ -188,10 +188,10 @@ function ExploreTab({ onSearch, setFullscreenImage }) {
             className="absolute text-green-500/10"
             size={Math.random() * 20 + 20}
             style={{
-              left: \`\${Math.random() * 100}%\`,
+              left: `${Math.random() * 100}%`,
               top: '-10%',
-              animation: \`fall \${Math.random() * 5 + 10}s linear infinite\`,
-              animationDelay: \`\${Math.random() * 5}s\`
+              animation: `fall ${Math.random() * 5 + 10}s linear infinite`,
+              animationDelay: `${Math.random() * 5}s`
             }}
           />
         ))}
@@ -286,7 +286,7 @@ function ExploreTab({ onSearch, setFullscreenImage }) {
           </h3>
           <div 
             onClick={() => setTriviaFlipped(!triviaFlipped)}
-            className={\`relative w-full h-40 transition-transform duration-700 preserve-3d cursor-pointer active:scale-95 \${triviaFlipped ? 'rotate-y-180' : ''}\`}
+            className={`relative w-full h-40 transition-transform duration-700 preserve-3d cursor-pointer active:scale-95 ${triviaFlipped ? 'rotate-y-180' : ''}`}
           >
             {/* Front of Card */}
             <div className="absolute w-full h-full backface-hidden bg-gradient-to-br from-green-400 to-green-600 rounded-3xl shadow-[0_10px_30px_rgba(34,197,94,0.3)] p-6 flex flex-col justify-center items-center text-white text-center border-2 border-green-300/50">
