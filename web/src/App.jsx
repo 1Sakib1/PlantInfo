@@ -1,5 +1,5 @@
 import { useState, useRef, useEffect } from 'react';
-import { Camera, Search, Leaf, Info, Loader2, BookOpen, AlertCircle, Compass, Star, ChevronRight } from 'lucide-react';
+import { Camera, Search, Leaf, Info, Loader2, BookOpen, AlertCircle, Compass, Star, ChevronRight, Image as ImageIcon } from 'lucide-react';
 
 export default function App() {
   const [activeTab, setActiveTab] = useState('explore'); 
@@ -121,7 +121,8 @@ function ScanTab() {
   const [loading, setLoading] = useState(false);
   const [result, setResult] = useState(null);
   const [error, setError] = useState(null);
-  const fileInputRef = useRef(null);
+  const cameraInputRef = useRef(null);
+  const galleryInputRef = useRef(null);
 
   const handleImageCapture = (e) => {
     const file = e.target.files[0];
@@ -138,11 +139,11 @@ function ScanTab() {
     return new Promise((resolve) => {
       const reader = new FileReader();
       reader.onload = (event) => {
-        const img = new Image();
+        const img = new window.Image();
         img.onload = () => {
           const canvas = document.createElement('canvas');
-          const MAX_WIDTH = 1024;
-          const MAX_HEIGHT = 1024;
+          const MAX_WIDTH = 1600;
+          const MAX_HEIGHT = 1600;
           let width = img.width;
           let height = img.height;
 
@@ -161,7 +162,7 @@ function ScanTab() {
           canvas.height = height;
           const ctx = canvas.getContext('2d');
           ctx.drawImage(img, 0, 0, width, height);
-          resolve(canvas.toDataURL('image/jpeg', 0.8));
+          resolve(canvas.toDataURL('image/jpeg', 0.85));
         };
         img.src = event.target.result;
       };
@@ -209,17 +210,33 @@ function ScanTab() {
         accept="image/*" 
         capture="environment" 
         className="hidden" 
-        ref={fileInputRef}
+        ref={cameraInputRef}
+        onChange={handleImageCapture}
+      />
+      <input 
+        type="file" 
+        accept="image/*" 
+        className="hidden" 
+        ref={galleryInputRef}
         onChange={handleImageCapture}
       />
 
       {!imageSrc ? (
-        <div 
-          onClick={() => fileInputRef.current.click()}
-          className="border-4 border-dashed border-green-200 rounded-3xl p-12 flex flex-col items-center justify-center text-green-600 bg-white cursor-pointer hover:bg-green-50 hover:border-green-400 transition shadow-sm"
-        >
-          <Camera size={64} className="mb-4 opacity-80" />
-          <span className="font-bold text-lg">Tap to open Camera</span>
+        <div className="flex flex-col gap-4 mt-4">
+          <div 
+            onClick={() => cameraInputRef.current.click()}
+            className="border-2 border-green-500 rounded-3xl p-8 flex flex-col items-center justify-center text-white bg-green-500 cursor-pointer hover:bg-green-600 transition shadow-md"
+          >
+            <Camera size={48} className="mb-3" />
+            <span className="font-bold text-lg">Take Photo</span>
+          </div>
+          <div 
+            onClick={() => galleryInputRef.current.click()}
+            className="border-2 border-dashed border-gray-300 rounded-3xl p-6 flex flex-col items-center justify-center text-gray-600 bg-white cursor-pointer hover:bg-gray-50 hover:border-gray-400 transition shadow-sm"
+          >
+            <ImageIcon size={32} className="mb-2 text-gray-400" />
+            <span className="font-bold">Upload from Gallery</span>
+          </div>
         </div>
       ) : (
         <div className="space-y-4">
