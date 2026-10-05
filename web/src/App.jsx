@@ -1,5 +1,6 @@
 import { useState, useRef, useEffect } from 'react';
 import { Camera, Search, Leaf, Info, Loader2, BookOpen, AlertCircle, Compass, Star, ChevronRight, Image as ImageIcon, Download, Sparkles, ArrowRight, X, Maximize2 } from 'lucide-react';
+import { SpeedInsights } from '@vercel/speed-insights/react';
 
 export default function App() {
   const [activeTab, setActiveTab] = useState('explore'); 
@@ -84,6 +85,7 @@ export default function App() {
           </button>
         </div>
       )}
+      <SpeedInsights />
     </div>
   );
 }
