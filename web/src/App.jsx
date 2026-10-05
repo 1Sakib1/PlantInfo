@@ -474,24 +474,41 @@ function SearchTab({ initialQuery }) {
     setWikiMedia([]);
 
     try {
-      // 1. Fetch rich summary from Wikipedia REST API
-      const summaryRes = await fetch(`https://en.wikipedia.org/api/rest_v1/page/summary/${encodeURIComponent(searchStr.replace(/ /g, '_'))}`);
-      if (!summaryRes.ok) throw new Error('Not found');
+      // 1. Intelligent AI Query Resolution
+      const aiRes = await fetch('/api/search', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ query: searchStr })
+      });
+      
+      if (!aiRes.ok) throw new Error('AI Search failed to resolve query.');
+      const aiData = await aiRes.json();
+
+      if (!aiData.isPlant) {
+        setError(aiData.reasoning || `"${searchStr}" does not appear to be a plant. Please search for botanical subjects.`);
+        setLoading(false);
+        return;
+      }
+
+      const exactWikiTitle = aiData.wikipediaTitle;
+
+      // 2. Fetch rich summary from Wikipedia REST API using the AI-resolved title
+      const summaryRes = await fetch(`https://en.wikipedia.org/api/rest_v1/page/summary/${encodeURIComponent(exactWikiTitle.replace(/ /g, '_'))}`);
+      if (!summaryRes.ok) throw new Error(`Could not find Wikipedia data for "${exactWikiTitle}"`);
       const summaryData = await summaryRes.json();
       
       if (summaryData.type === 'disambiguation') {
-        setError(`"${searchStr}" is too broad. Please be more specific (e.g. "${searchStr} (plant)").`);
+        setError(`"${exactWikiTitle}" is too broad. Please be more specific.`);
         setLoading(false);
         return;
       }
 
       setWikiData(summaryData);
 
-      // 2. Fetch media gallery for this page
+      // 3. Fetch media gallery for this page
       const mediaRes = await fetch(`https://en.wikipedia.org/api/rest_v1/page/media-list/${encodeURIComponent(summaryData.title.replace(/ /g, '_'))}`);
       if (mediaRes.ok) {
         const mediaData = await mediaRes.json();
-        // Filter for images and grab the highest res src
         const photos = mediaData.items
           .filter(item => item.type === 'image' && (item.title.toLowerCase().endsWith('.jpg') || item.title.toLowerCase().endsWith('.jpeg') || item.title.toLowerCase().endsWith('.png')))
           .map(item => {
@@ -508,7 +525,7 @@ function SearchTab({ initialQuery }) {
       }
     } catch (err) {
       console.error(err);
-      setError(`No botanical or general Wikipedia entry found for "${searchStr}".`);
+      setError(`Our AI Botanist could not find encyclopedia records for "${searchStr}".`);
     } finally {
       setLoading(false);
     }
