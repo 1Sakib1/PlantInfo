@@ -401,11 +401,17 @@ function SearchTab({ initialQuery }) {
       const mediaRes = await fetch(`https://en.wikipedia.org/api/rest_v1/page/media-list/${encodeURIComponent(summaryData.title.replace(/ /g, '_'))}`);
       if (mediaRes.ok) {
         const mediaData = await mediaRes.json();
-        // Filter for JPEGs to show a gallery, avoiding SVG icons and small logos
+        // Filter for images and grab the highest res src
         const photos = mediaData.items
-          .filter(item => item.type === 'image' && item.title.toLowerCase().endsWith('.jpg'))
-          .map(item => item.srcset && item.srcset.length > 0 ? item.srcset[item.srcset.length - 1].src : (item.source?.src || item.title))
-          .filter(src => src && src.startsWith('http'))
+          .filter(item => item.type === 'image' && (item.title.toLowerCase().endsWith('.jpg') || item.title.toLowerCase().endsWith('.jpeg') || item.title.toLowerCase().endsWith('.png')))
+          .map(item => {
+            let src = item.srcset && item.srcset.length > 0 ? item.srcset[item.srcset.length - 1].src : (item.source?.src || '');
+            if (src.startsWith('//')) {
+              src = 'https:' + src;
+            }
+            return src;
+          })
+          .filter(src => src.startsWith('http'))
           .slice(0, 4); // Take top 4 photos
         
         setWikiMedia(photos);
