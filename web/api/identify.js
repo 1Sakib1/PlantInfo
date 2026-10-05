@@ -48,7 +48,7 @@ export default async function handler(req, res) {
     const data = dataPart[1];
 
     const response = await ai.models.generateContent({
-      model: 'gemini-2.5-flash',
+      model: 'gemini-3.8-flash',
       contents: [
         "You are an expert botanist and encyclopedist. Identify the plant in this image. Return ONLY a valid JSON object with the following schema: { \"name\": \"Common Name\", \"scientificName\": \"Scientific name\", \"family\": \"Plant family\", \"description\": \"Detailed wikipedia-style description of the plant, its origin, and characteristics.\", \"uses\": [\"use 1\", \"use 2\"] }. Do not include markdown blocks or any other text.",
         {
@@ -63,7 +63,9 @@ export default async function handler(req, res) {
       }
     });
 
-    const result = JSON.parse(response.text);
+    let rawText = response.text || '';
+    rawText = rawText.replace(/^```json\n?/g, '').replace(/\n?```$/g, '').trim();
+    const result = JSON.parse(rawText);
     return res.status(200).json(result);
   } catch (error) {
     console.error('Gemini API Error:', error);
