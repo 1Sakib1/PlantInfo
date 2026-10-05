@@ -1,61 +1,41 @@
- 🌱 PlantExplorer App – NIT3213 Assignment Project
+# PlantInfo 🌿
 
-This is a native Android application built as part of the **NIT3213 – Mobile Application Development** unit at Victoria University. The app is designed to help users **log in** and explore a curated list of local plants using a dynamic **REST API**.
+A comprehensive, dual-platform Botanical Encyclopedia and Plant Identification tool. This repository contains both a **Native Android Kotlin** application and a cross-platform **React PWA** powered by AI Computer Vision.
 
----
+## 📱 Platforms
 
- 🔍 Project Overview
+### 1. PlantInfo AI (Web / PWA)
+Located in the `/web` directory, this is a highly engineered Progressive Web Application.
+- **AI Plant Detection:** Uses your device's camera to identify plants via the Google Gemini 2.5 Flash AI model.
+- **Wiki Explorer:** Connects directly to the live Wikipedia API for deep botanical research.
+- **Live Demo:** [https://1Sakib1.github.io/PlantInfo/](https://1Sakib1.github.io/PlantInfo/)
 
-**PlantExplorer** allows authenticated users to view detailed information about local plants, including:
-- Common and scientific names
-- Care levels
-- Light requirements
-- Descriptions
+### 2. PlantInfo Native (Android)
+Located in the `/app` directory, this is the core Native Android codebase written in Kotlin.
+- Clean MVVM architecture (Model-View-ViewModel).
+- Full suite of native Android Activities (Dashboard, Login, Details).
+- Structured API communication interfaces via Retrofit.
 
-The app uses **Retrofit** to fetch data from a cloud-based API and supports a clean user experience with **Bottom Navigation** between screens.
+## 🚀 Setup & Installation
 
----
+### Running the Web App (PWA)
+```bash
+cd web
+npm install
+npm run dev
+```
 
-🔧 Features
+### Running the Android App
+1. Open the root `PlantInfo` folder in **Android Studio**.
+2. Let Gradle sync dependencies.
+3. Click "Run" to build the APK and launch it on your emulator or physical device.
 
-- 🔐 **User Login**
-  - Validates credentials using a remote API (`POST /sydney/auth`)
-- 📊 **Dashboard**
-  - Displays a dynamic list of plants with RecyclerView
-- 🔍 **Details Screen**
-  - Shows full information about each plant
-- 🧭 **Bottom Navigation**
-  - Smooth navigation between Dashboard and Details
-- 📶 **Internet Connectivity Check**
-  - Notifies user if no internet is available
-- 📲 **Material Design UI**
-  - Modern look using Material Components and ViewBinding
+## 🛠️ Architecture
+- **Web Frontend:** React, Vite, Tailwind CSS 4, Google GenAI SDK.
+- **Android Native:** Kotlin, Gradle, XML Layouts, Material Design.
+- **CI/CD:** Automated GitHub Actions pipeline (`deploy.yml`) for seamless Web deployment.
 
----
-
- ⚙️ Tech Stack
-----------------------------------------------------------------------------
-| Technology                  | Description                                |
-|-----------------------------|--------------------------------------------|
-| **Kotlin**                  | Main programming language                  |
-| **Android Studio**          | Development environment                    |
-| **Retrofit2**               | HTTP client for API calls                  |
-| **Coroutines**              | Asynchronous programming                   |
-| **ViewBinding**             | Type-safe access to views                  |
-| **Fragments**               | Modular UI management                      |
-| **BottomNavigationView**    | User-friendly navigation                   |
-
----
-
-📡 API Information
-
-- **Base URL**: `https://nit3213api.onrender.com/`
-- **Authentication Endpoint**: `POST /sydney/auth`
-- **Plants Endpoint**: `GET /dashboard/{keypass}`
-
-**Sample credentials:**
-```json
-{
-  "username": "Nazmus",
-  "password": "s8116515"
-}
+## 🌐 Live Link
+You can access the live Web version here:
+**[https://1Sakib1.github.io/PlantInfo/](https://1Sakib1.github.io/PlantInfo/)**
+*(Make sure to update your GitHub repository's "About" section with this URL!)*

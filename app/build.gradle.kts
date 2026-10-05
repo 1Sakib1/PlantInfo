@@ -6,11 +6,11 @@ plugins {
 }
 
 android {
-    namespace = "com.example.vuapp"
+    namespace = "com.sakib.plantinfo"
     compileSdk = 34
 
     defaultConfig {
-        applicationId = "com.example.vuapp"
+        applicationId = "com.sakib.plantinfo"
         minSdk = 26
         targetSdk = 34
         versionCode = 1
