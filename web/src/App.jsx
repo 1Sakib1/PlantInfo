@@ -60,18 +60,18 @@ export default function App() {
 
 function ExploreTab({ onSearch }) {
   const trendingPlants = [
-    { name: 'Monstera Deliciosa', img: 'https://images.unsplash.com/photo-1614594975525-e45190c55d0b?w=400&q=80', desc: 'Famous for its natural leaf holes.' },
-    { name: 'Snake Plant', img: 'https://images.unsplash.com/photo-1599004037562-108bf8925409?w=400&q=80', desc: 'Incredibly resilient air purifier.' },
-    { name: 'Lavender', img: 'https://images.unsplash.com/photo-1563241527-2004bbbb5b73?w=400&q=80', desc: 'Known for its calming fragrance.' },
-    { name: 'Peace Lily', img: 'https://images.unsplash.com/photo-1593019808947-f273b4ba9246?w=400&q=80', desc: 'Beautiful white blooms year-round.' },
+    { name: 'Monstera Deliciosa', img: 'https://upload.wikimedia.org/wikipedia/commons/thumb/0/04/Monstera_deliciosa3.jpg/800px-Monstera_deliciosa3.jpg', desc: 'Famous for its natural leaf holes.' },
+    { name: 'Snake Plant', img: 'https://upload.wikimedia.org/wikipedia/commons/thumb/f/fb/Snake_plant.jpg/800px-Snake_plant.jpg', desc: 'Incredibly resilient air purifier.' },
+    { name: 'Lavender', img: 'https://upload.wikimedia.org/wikipedia/commons/thumb/7/7e/Single_lavendar_flower02.jpg/800px-Single_lavendar_flower02.jpg', desc: 'Known for its calming fragrance.' },
+    { name: 'Peace Lily', img: 'https://upload.wikimedia.org/wikipedia/commons/thumb/b/b3/Spathiphyllum_floribundum1.jpg/800px-Spathiphyllum_floribundum1.jpg', desc: 'Beautiful white blooms year-round.' },
   ];
 
   return (
     <div className="animate-in fade-in duration-500">
       {/* Plant of the week hero */}
-      <div className="relative h-72 w-full">
+      <div className="relative h-72 w-full bg-gray-200">
         <img 
-          src="https://images.unsplash.com/photo-1416879598555-52ff67e219fb?w=800&q=80" 
+          src="https://upload.wikimedia.org/wikipedia/commons/thumb/e/e5/Bonsai_Trident_Maple.jpg/800px-Bonsai_Trident_Maple.jpg" 
           alt="Plant of the week" 
           className="w-full h-full object-cover"
         />
