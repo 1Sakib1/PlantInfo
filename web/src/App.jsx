@@ -1,32 +1,50 @@
-import { useState, useRef } from 'react';
-import { Camera, Search, Leaf, Info, Loader2, BookOpen, AlertCircle } from 'lucide-react';
+import { useState, useRef, useEffect } from 'react';
+import { Camera, Search, Leaf, Info, Loader2, BookOpen, AlertCircle, Compass, Star, ChevronRight } from 'lucide-react';
 
 export default function App() {
-  const [activeTab, setActiveTab] = useState('scan'); // 'scan' | 'search'
+  const [activeTab, setActiveTab] = useState('explore'); 
+  const [autoSearchQuery, setAutoSearchQuery] = useState('');
+
+  const handleExploreSearch = (query) => {
+    setAutoSearchQuery(query);
+    setActiveTab('search');
+  };
 
   return (
-    <div className="min-h-screen pb-20 flex flex-col font-sans">
+    <div className="min-h-screen bg-gray-50 pb-20 flex flex-col font-sans">
       {/* Header */}
       <header className="bg-green-600 text-white p-4 shadow-md sticky top-0 z-10 flex justify-between items-center">
         <div className="flex items-center gap-2">
-          <Leaf size={24} />
+          <Leaf size={24} className="animate-pulse" />
           <h1 className="text-xl font-bold tracking-wide">PlantInfo AI</h1>
+        </div>
+        <div className="bg-green-700/50 px-3 py-1 rounded-full text-xs font-bold border border-green-500">
+          Pro
         </div>
       </header>
 
       {/* Main Content */}
-      <main className="flex-1 p-4 max-w-2xl mx-auto w-full">
-        {activeTab === 'scan' ? <ScanTab /> : <SearchTab />}
+      <main className="flex-1 max-w-2xl mx-auto w-full">
+        {activeTab === 'explore' && <ExploreTab onSearch={handleExploreSearch} />}
+        {activeTab === 'scan' && <ScanTab />}
+        {activeTab === 'search' && <SearchTab initialQuery={autoSearchQuery} />}
       </main>
 
       {/* Bottom Navigation */}
-      <nav className="fixed bottom-0 w-full bg-white border-t border-gray-200 flex justify-around p-3 pb-safe shadow-[0_-4px_6px_-1px_rgba(0,0,0,0.05)] z-10">
+      <nav className="fixed bottom-0 w-full bg-white border-t border-gray-200 flex justify-around p-3 pb-safe shadow-[0_-4px_6px_-1px_rgba(0,0,0,0.05)] z-20">
+        <button 
+          onClick={() => setActiveTab('explore')} 
+          className={`flex flex-col items-center gap-1 w-20 transition ${activeTab === 'explore' ? 'text-green-600' : 'text-gray-400 hover:text-green-500'}`}
+        >
+          <Compass size={24} strokeWidth={activeTab === 'explore' ? 2.5 : 2} />
+          <span className="text-xs font-semibold">Explore</span>
+        </button>
         <button 
           onClick={() => setActiveTab('scan')} 
           className={`flex flex-col items-center gap-1 w-20 transition ${activeTab === 'scan' ? 'text-green-600' : 'text-gray-400 hover:text-green-500'}`}
         >
           <Camera size={24} strokeWidth={activeTab === 'scan' ? 2.5 : 2} />
-          <span className="text-xs font-semibold">Scan</span>
+          <span className="text-xs font-semibold">Scan AI</span>
         </button>
         <button 
           onClick={() => setActiveTab('search')} 
@@ -36,6 +54,63 @@ export default function App() {
           <span className="text-xs font-semibold">Wiki</span>
         </button>
       </nav>
+    </div>
+  );
+}
+
+function ExploreTab({ onSearch }) {
+  const trendingPlants = [
+    { name: 'Monstera Deliciosa', img: 'https://images.unsplash.com/photo-1614594975525-e45190c55d0b?w=400&q=80', desc: 'Famous for its natural leaf holes.' },
+    { name: 'Snake Plant', img: 'https://images.unsplash.com/photo-1599004037562-108bf8925409?w=400&q=80', desc: 'Incredibly resilient air purifier.' },
+    { name: 'Lavender', img: 'https://images.unsplash.com/photo-1563241527-2004bbbb5b73?w=400&q=80', desc: 'Known for its calming fragrance.' },
+    { name: 'Peace Lily', img: 'https://images.unsplash.com/photo-1593019808947-f273b4ba9246?w=400&q=80', desc: 'Beautiful white blooms year-round.' },
+  ];
+
+  return (
+    <div className="animate-in fade-in duration-500">
+      {/* Plant of the week hero */}
+      <div className="relative h-72 w-full">
+        <img 
+          src="https://images.unsplash.com/photo-1416879598555-52ff67e219fb?w=800&q=80" 
+          alt="Plant of the week" 
+          className="w-full h-full object-cover"
+        />
+        <div className="absolute inset-0 bg-gradient-to-t from-black/80 via-black/30 to-transparent"></div>
+        <div className="absolute bottom-0 left-0 p-6 text-white w-full">
+          <div className="flex items-center gap-2 text-yellow-400 mb-2">
+            <Star size={16} fill="currentColor" />
+            <span className="text-xs font-bold uppercase tracking-widest">Plant of the Week</span>
+          </div>
+          <h2 className="text-3xl font-black mb-1">Bonsai Tree</h2>
+          <p className="text-sm text-gray-200 mb-3 line-clamp-2">The ancient Japanese art of growing miniature trees in containers, representing peace, balance, and harmony.</p>
+          <button 
+            onClick={() => onSearch('Bonsai')}
+            className="bg-green-500 hover:bg-green-600 text-white text-sm font-bold py-2 px-4 rounded-lg flex items-center gap-1 transition"
+          >
+            Learn More <ChevronRight size={16} />
+          </button>
+        </div>
+      </div>
+
+      {/* Trending Section */}
+      <div className="p-4 pt-6">
+        <h3 className="text-xl font-bold text-gray-900 mb-4">Trending Species</h3>
+        <div className="grid grid-cols-2 gap-4">
+          {trendingPlants.map((plant, idx) => (
+            <div 
+              key={idx} 
+              onClick={() => onSearch(plant.name)}
+              className="bg-white rounded-2xl overflow-hidden shadow-sm border border-gray-100 active:scale-95 transition cursor-pointer"
+            >
+              <img src={plant.img} alt={plant.name} className="w-full h-32 object-cover" />
+              <div className="p-3">
+                <h4 className="font-bold text-gray-800 text-sm">{plant.name}</h4>
+                <p className="text-xs text-gray-500 mt-1 line-clamp-2">{plant.desc}</p>
+              </div>
+            </div>
+          ))}
+        </div>
+      </div>
     </div>
   );
 }
@@ -123,10 +198,10 @@ function ScanTab() {
   };
 
   return (
-    <div className="flex flex-col gap-6 animate-in fade-in duration-500">
-      <div className="text-center">
+    <div className="flex flex-col gap-6 p-4 animate-in fade-in duration-500">
+      <div className="text-center mt-2">
         <h2 className="text-2xl font-black text-green-800 mb-2">Identify any plant</h2>
-        <p className="text-gray-600">Take a photo or upload an image to instantly identify plants using AI.</p>
+        <p className="text-gray-600 text-sm">Take a photo or upload an image to instantly identify plants using AI.</p>
       </div>
 
       <input 
@@ -141,7 +216,7 @@ function ScanTab() {
       {!imageSrc ? (
         <div 
           onClick={() => fileInputRef.current.click()}
-          className="border-4 border-dashed border-green-200 rounded-3xl p-12 flex flex-col items-center justify-center text-green-600 bg-white cursor-pointer hover:bg-green-50 hover:border-green-400 transition"
+          className="border-4 border-dashed border-green-200 rounded-3xl p-12 flex flex-col items-center justify-center text-green-600 bg-white cursor-pointer hover:bg-green-50 hover:border-green-400 transition shadow-sm"
         >
           <Camera size={64} className="mb-4 opacity-80" />
           <span className="font-bold text-lg">Tap to open Camera</span>
@@ -220,29 +295,34 @@ function ScanTab() {
   );
 }
 
-function SearchTab() {
-  const [query, setQuery] = useState('');
+function SearchTab({ initialQuery }) {
+  const [query, setQuery] = useState(initialQuery || '');
   const [loading, setLoading] = useState(false);
   const [wikiData, setWikiData] = useState(null);
   const [error, setError] = useState(null);
 
-  const searchWiki = async (e) => {
-    e.preventDefault();
-    if (!query.trim()) return;
+  useEffect(() => {
+    if (initialQuery) {
+      searchWikiText(initialQuery);
+    }
+  }, [initialQuery]);
+
+  const searchWikiText = async (searchStr) => {
+    if (!searchStr.trim()) return;
     
     setLoading(true);
     setError(null);
     setWikiData(null);
 
     try {
-      const res = await fetch(`https://en.wikipedia.org/w/api.php?action=query&format=json&prop=extracts|pageimages&titles=${encodeURIComponent(query)}&exintro=1&pithumbsize=600&origin=*`);
+      const res = await fetch(`https://en.wikipedia.org/w/api.php?action=query&format=json&prop=extracts|pageimages&titles=${encodeURIComponent(searchStr)}&exintro=1&pithumbsize=600&origin=*`);
       const data = await res.json();
       
       const pages = data.query.pages;
       const pageId = Object.keys(pages)[0];
       
       if (pageId === '-1') {
-        setError(`No botanical or general Wikipedia entry found for "${query}".`);
+        setError(`No botanical or general Wikipedia entry found for "${searchStr}".`);
       } else {
         setWikiData(pages[pageId]);
       }
@@ -254,14 +334,19 @@ function SearchTab() {
     }
   };
 
+  const onSubmit = (e) => {
+    e.preventDefault();
+    searchWikiText(query);
+  };
+
   return (
-    <div className="flex flex-col gap-6 animate-in fade-in duration-500">
-      <div className="text-center">
+    <div className="flex flex-col gap-6 p-4 animate-in fade-in duration-500">
+      <div className="text-center mt-2">
         <h2 className="text-2xl font-black text-green-800 mb-2">Wiki Explorer</h2>
-        <p className="text-gray-600">Search the world's largest encyclopedia for comprehensive plant details.</p>
+        <p className="text-gray-600 text-sm">Search the world's largest encyclopedia for comprehensive plant details.</p>
       </div>
 
-      <form onSubmit={searchWiki} className="relative">
+      <form onSubmit={onSubmit} className="relative">
         <input 
           type="text" 
           placeholder="e.g. Monstera deliciosa..."
@@ -288,7 +373,7 @@ function SearchTab() {
       )}
 
       {wikiData && (
-        <div className="bg-white rounded-2xl shadow-xl overflow-hidden border border-gray-100 mt-2">
+        <div className="bg-white rounded-2xl shadow-xl overflow-hidden border border-gray-100 mt-2 animate-in slide-in-from-bottom-4">
           {wikiData.thumbnail && (
             <img src={wikiData.thumbnail.source} alt={wikiData.title} className="w-full h-64 object-cover" />
           )}
@@ -304,7 +389,7 @@ function SearchTab() {
               href={`https://en.wikipedia.org/?curid=${wikiData.pageid}`} 
               target="_blank" 
               rel="noreferrer"
-              className="mt-6 inline-block bg-gray-100 hover:bg-gray-200 text-gray-800 font-bold py-2 px-4 rounded-lg text-sm transition"
+              className="mt-6 inline-block bg-green-50 hover:bg-green-100 text-green-800 font-bold py-2 px-4 rounded-lg text-sm transition w-full text-center border border-green-200"
             >
               Read full article on Wikipedia ↗
             </a>
