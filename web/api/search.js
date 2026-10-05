@@ -24,7 +24,7 @@ export default async function handler(req, res) {
     const ai = new GoogleGenAI({ apiKey: process.env.GEMINI_API_KEY });
 
     const response = await ai.models.generateContent({
-      model: 'gemini-3.8-flash',
+      model: 'gemini-3.5-flash',
       contents: [
         `You are a brilliant AI botanist. The user searched for: "${query}". 
         Determine if this query is a plant, a flower, a tree, or related to botany. 
