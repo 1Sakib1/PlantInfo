@@ -1,11 +1,8 @@
-import { useState, useRef, useEffect } from 'react';
-import { Camera, Search, Leaf, Info, Settings, Upload, Loader2, BookOpen, AlertCircle } from 'lucide-react';
-import { GoogleGenAI } from '@google/genai';
+import { useState, useRef } from 'react';
+import { Camera, Search, Leaf, Info, Loader2, BookOpen, AlertCircle } from 'lucide-react';
 
 export default function App() {
   const [activeTab, setActiveTab] = useState('scan'); // 'scan' | 'search'
-  const [apiKey, setApiKey] = useState(localStorage.getItem('gemini_api_key') || '');
-  const [showSettings, setShowSettings] = useState(!localStorage.getItem('gemini_api_key'));
 
   return (
     <div className="min-h-screen pb-20 flex flex-col font-sans">
@@ -15,14 +12,11 @@ export default function App() {
           <Leaf size={24} />
           <h1 className="text-xl font-bold tracking-wide">PlantInfo AI</h1>
         </div>
-        <button onClick={() => setShowSettings(true)} className="p-2 bg-green-700 hover:bg-green-800 rounded-full transition">
-          <Settings size={20} />
-        </button>
       </header>
 
       {/* Main Content */}
       <main className="flex-1 p-4 max-w-2xl mx-auto w-full">
-        {activeTab === 'scan' ? <ScanTab apiKey={apiKey} setShowSettings={setShowSettings} /> : <SearchTab />}
+        {activeTab === 'scan' ? <ScanTab /> : <SearchTab />}
       </main>
 
       {/* Bottom Navigation */}
@@ -42,54 +36,11 @@ export default function App() {
           <span className="text-xs font-semibold">Wiki</span>
         </button>
       </nav>
-
-      {/* API Key Settings Modal */}
-      {showSettings && (
-        <div className="fixed inset-0 bg-black/50 backdrop-blur-sm z-50 flex items-center justify-center p-4">
-          <div className="bg-white rounded-2xl shadow-xl p-6 w-full max-w-md">
-            <h2 className="text-2xl font-bold text-gray-800 mb-2 flex items-center gap-2">
-              <Settings className="text-green-600" /> Setup AI Vision
-            </h2>
-            <p className="text-sm text-gray-600 mb-4">
-              To identify plants using computer vision, you need a free Google Gemini API Key.
-            </p>
-            <ol className="list-decimal pl-5 text-sm text-gray-600 space-y-1 mb-6">
-              <li>Go to <a href="https://aistudio.google.com/app/apikey" target="_blank" rel="noreferrer" className="text-blue-600 hover:underline">Google AI Studio</a></li>
-              <li>Sign in and click "Create API Key"</li>
-              <li>Paste the key below</li>
-            </ol>
-            <input 
-              type="password" 
-              placeholder="AIzaSy..."
-              className="w-full border border-gray-300 rounded-lg px-4 py-3 focus:outline-none focus:ring-2 focus:ring-green-500 mb-4"
-              value={apiKey}
-              onChange={e => setApiKey(e.target.value)}
-            />
-            <div className="flex gap-3">
-              <button 
-                onClick={() => setShowSettings(false)}
-                className="flex-1 px-4 py-3 border border-gray-300 text-gray-700 font-bold rounded-lg hover:bg-gray-50"
-              >
-                Close
-              </button>
-              <button 
-                onClick={() => {
-                  localStorage.setItem('gemini_api_key', apiKey);
-                  setShowSettings(false);
-                }}
-                className="flex-1 bg-green-600 text-white font-bold px-4 py-3 rounded-lg hover:bg-green-700 shadow-md shadow-green-200"
-              >
-                Save Key
-              </button>
-            </div>
-          </div>
-        </div>
-      )}
     </div>
   );
 }
 
-function ScanTab({ apiKey, setShowSettings }) {
+function ScanTab() {
   const [imageSrc, setImageSrc] = useState(null);
   const [imageFile, setImageFile] = useState(null);
   const [loading, setLoading] = useState(false);
@@ -108,50 +59,64 @@ function ScanTab({ apiKey, setShowSettings }) {
     }
   };
 
-  const fileToGenerativePart = async (file) => {
+  const compressImage = (file) => {
     return new Promise((resolve) => {
       const reader = new FileReader();
-      reader.onloadend = () => {
-        resolve({
-          inlineData: {
-            data: reader.result.split(',')[1],
-            mimeType: file.type
+      reader.onload = (event) => {
+        const img = new Image();
+        img.onload = () => {
+          const canvas = document.createElement('canvas');
+          const MAX_WIDTH = 1024;
+          const MAX_HEIGHT = 1024;
+          let width = img.width;
+          let height = img.height;
+
+          if (width > height) {
+            if (width > MAX_WIDTH) {
+              height *= MAX_WIDTH / width;
+              width = MAX_WIDTH;
+            }
+          } else {
+            if (height > MAX_HEIGHT) {
+              width *= MAX_HEIGHT / height;
+              height = MAX_HEIGHT;
+            }
           }
-        });
+          canvas.width = width;
+          canvas.height = height;
+          const ctx = canvas.getContext('2d');
+          ctx.drawImage(img, 0, 0, width, height);
+          resolve(canvas.toDataURL('image/jpeg', 0.8));
+        };
+        img.src = event.target.result;
       };
       reader.readAsDataURL(file);
     });
   };
 
   const identifyPlant = async () => {
-    if (!apiKey) {
-      setShowSettings(true);
-      return;
-    }
     if (!imageFile) return;
 
     setLoading(true);
     setError(null);
     try {
-      const ai = new GoogleGenAI({ apiKey });
-      const imagePart = await fileToGenerativePart(imageFile);
+      const imageBase64 = await compressImage(imageFile);
       
-      const response = await ai.models.generateContent({
-        model: 'gemini-2.5-flash',
-        contents: [
-          "You are an expert botanist and encyclopedist. Identify the plant in this image. Return ONLY a valid JSON object with the following schema: { \"name\": \"Common Name\", \"scientificName\": \"Scientific name\", \"family\": \"Plant family\", \"description\": \"Detailed wikipedia-style description of the plant, its origin, and characteristics.\", \"uses\": [\"use 1\", \"use 2\"] }. Do not include markdown blocks or any other text.",
-          imagePart
-        ],
-        config: {
-          responseMimeType: "application/json"
-        }
+      const response = await fetch('/api/identify', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ imageBase64 })
       });
 
-      const data = JSON.parse(response.text);
+      if (!response.ok) {
+        throw new Error('Failed to identify plant. Server returned ' + response.status);
+      }
+
+      const data = await response.json();
       setResult(data);
     } catch (err) {
       console.error(err);
-      setError("Failed to identify plant. Ensure your API key is valid and the image contains a plant.");
+      setError("Failed to identify plant. Please try again.");
     } finally {
       setLoading(false);
     }
