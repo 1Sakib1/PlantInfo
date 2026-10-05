@@ -341,38 +341,78 @@ function ScanTab() {
 
 function SearchTab({ initialQuery }) {
   const [query, setQuery] = useState(initialQuery || '');
+  const [suggestions, setSuggestions] = useState([]);
+  const [showSuggestions, setShowSuggestions] = useState(false);
+  
   const [loading, setLoading] = useState(false);
   const [wikiData, setWikiData] = useState(null);
+  const [wikiMedia, setWikiMedia] = useState([]);
   const [error, setError] = useState(null);
 
   useEffect(() => {
     if (initialQuery) {
-      searchWikiText(initialQuery);
+      executeSearch(initialQuery);
     }
   }, [initialQuery]);
 
-  const searchWikiText = async (searchStr) => {
+  // Autocomplete fetcher
+  useEffect(() => {
+    if (query.trim().length < 2) {
+      setSuggestions([]);
+      return;
+    }
+    const timer = setTimeout(async () => {
+      try {
+        const res = await fetch(`https://en.wikipedia.org/w/api.php?action=opensearch&search=${encodeURIComponent(query)}&limit=5&namespace=0&format=json&origin=*`);
+        const data = await res.json();
+        setSuggestions(data[1] || []);
+      } catch (e) {
+        console.error("Autocomplete error", e);
+      }
+    }, 300);
+    return () => clearTimeout(timer);
+  }, [query]);
+
+  const executeSearch = async (searchStr) => {
     if (!searchStr.trim()) return;
     
+    setQuery(searchStr);
+    setShowSuggestions(false);
     setLoading(true);
     setError(null);
     setWikiData(null);
+    setWikiMedia([]);
 
     try {
-      const res = await fetch(`https://en.wikipedia.org/w/api.php?action=query&format=json&prop=extracts|pageimages&titles=${encodeURIComponent(searchStr)}&exintro=1&pithumbsize=600&origin=*`);
-      const data = await res.json();
+      // 1. Fetch rich summary from Wikipedia REST API
+      const summaryRes = await fetch(`https://en.wikipedia.org/api/rest_v1/page/summary/${encodeURIComponent(searchStr.replace(/ /g, '_'))}`);
+      if (!summaryRes.ok) throw new Error('Not found');
+      const summaryData = await summaryRes.json();
       
-      const pages = data.query.pages;
-      const pageId = Object.keys(pages)[0];
-      
-      if (pageId === '-1') {
-        setError(`No botanical or general Wikipedia entry found for "${searchStr}".`);
-      } else {
-        setWikiData(pages[pageId]);
+      if (summaryData.type === 'disambiguation') {
+        setError(`"${searchStr}" is too broad. Please be more specific (e.g. "${searchStr} (plant)").`);
+        setLoading(false);
+        return;
+      }
+
+      setWikiData(summaryData);
+
+      // 2. Fetch media gallery for this page
+      const mediaRes = await fetch(`https://en.wikipedia.org/api/rest_v1/page/media-list/${encodeURIComponent(summaryData.title.replace(/ /g, '_'))}`);
+      if (mediaRes.ok) {
+        const mediaData = await mediaRes.json();
+        // Filter for JPEGs to show a gallery, avoiding SVG icons and small logos
+        const photos = mediaData.items
+          .filter(item => item.type === 'image' && item.title.toLowerCase().endsWith('.jpg'))
+          .map(item => item.srcset && item.srcset.length > 0 ? item.srcset[item.srcset.length - 1].src : (item.source?.src || item.title))
+          .filter(src => src && src.startsWith('http'))
+          .slice(0, 4); // Take top 4 photos
+        
+        setWikiMedia(photos);
       }
     } catch (err) {
       console.error(err);
-      setError("Failed to fetch from Wikipedia.");
+      setError(`No botanical or general Wikipedia entry found for "${searchStr}".`);
     } finally {
       setLoading(false);
     }
@@ -380,60 +420,122 @@ function SearchTab({ initialQuery }) {
 
   const onSubmit = (e) => {
     e.preventDefault();
-    searchWikiText(query);
+    executeSearch(query);
   };
 
   return (
     <div className="flex flex-col gap-6 p-4 animate-in fade-in duration-500">
       <div className="text-center mt-2">
-        <h2 className="text-2xl font-black text-green-800 mb-2">Wiki Explorer</h2>
-        <p className="text-gray-600 text-sm">Search the world's largest encyclopedia for comprehensive plant details.</p>
+        <h2 className="text-3xl font-black text-green-800 mb-2 tracking-tight">Wiki Explorer</h2>
+        <p className="text-gray-600 text-sm">Search the world's largest encyclopedia for comprehensive botanical details.</p>
       </div>
 
-      <form onSubmit={onSubmit} className="relative">
-        <input 
-          type="text" 
-          placeholder="e.g. Monstera deliciosa..."
-          className="w-full bg-white border-2 border-green-200 rounded-2xl py-4 pl-12 pr-4 shadow-sm focus:outline-none focus:border-green-500 transition font-medium"
-          value={query}
-          onChange={e => setQuery(e.target.value)}
-        />
-        <Search className="absolute left-4 top-1/2 -translate-y-1/2 text-green-400" size={20} />
-        <button type="submit" className="absolute right-2 top-1/2 -translate-y-1/2 bg-green-100 text-green-700 hover:bg-green-200 p-2 rounded-xl transition font-bold text-sm">
-          Search
-        </button>
-      </form>
+      <div className="relative z-30">
+        <form onSubmit={onSubmit} className="relative">
+          <input 
+            type="text" 
+            placeholder="e.g. Monstera deliciosa..."
+            className="w-full bg-white border-2 border-green-200 rounded-2xl py-4 pl-12 pr-4 shadow-[0_4px_20px_rgba(0,0,0,0.05)] focus:outline-none focus:border-green-500 transition font-medium text-lg"
+            value={query}
+            onChange={e => {
+              setQuery(e.target.value);
+              setShowSuggestions(true);
+            }}
+            onFocus={() => setShowSuggestions(true)}
+            onBlur={() => setTimeout(() => setShowSuggestions(false), 200)}
+          />
+          <Search className="absolute left-4 top-1/2 -translate-y-1/2 text-green-400" size={24} />
+          <button type="submit" className="absolute right-2 top-1/2 -translate-y-1/2 bg-green-500 text-white hover:bg-green-600 px-4 py-2 rounded-xl transition font-bold shadow-md">
+            Search
+          </button>
+        </form>
+
+        {/* Autocomplete Suggestions */}
+        {showSuggestions && suggestions.length > 0 && (
+          <div className="absolute top-full left-0 w-full mt-2 bg-white rounded-xl shadow-2xl border border-gray-100 overflow-hidden animate-in slide-in-from-top-2">
+            {suggestions.map((sug, idx) => (
+              <div 
+                key={idx} 
+                onClick={() => executeSearch(sug)}
+                className="px-4 py-3 hover:bg-green-50 cursor-pointer text-gray-800 font-medium border-b border-gray-50 last:border-0 flex items-center gap-3 transition"
+              >
+                <Search size={16} className="text-gray-400" />
+                {sug}
+              </div>
+            ))}
+          </div>
+        )}
+      </div>
 
       {loading && (
-        <div className="flex justify-center py-12">
-          <Loader2 size={40} className="animate-spin text-green-500" />
+        <div className="flex flex-col items-center justify-center py-16">
+          <Loader2 size={48} className="animate-spin text-green-500 mb-4" />
+          <p className="font-bold text-green-600 animate-pulse">Searching encyclopedia...</p>
         </div>
       )}
 
       {error && (
-        <div className="bg-red-50 text-red-700 p-4 rounded-xl border border-red-100 text-sm text-center font-medium">
-          {error}
+        <div className="bg-red-50 text-red-700 p-6 rounded-2xl border border-red-100 text-center shadow-sm">
+          <AlertCircle size={32} className="mx-auto mb-3 text-red-400" />
+          <p className="font-bold">{error}</p>
         </div>
       )}
 
       {wikiData && (
-        <div className="bg-white rounded-2xl shadow-xl overflow-hidden border border-gray-100 mt-2 animate-in slide-in-from-bottom-4">
-          {wikiData.thumbnail && (
-            <img src={wikiData.thumbnail.source} alt={wikiData.title} className="w-full h-64 object-cover" />
+        <div className="bg-white rounded-3xl shadow-xl overflow-hidden border border-gray-100 animate-in slide-in-from-bottom-8">
+          
+          {/* Main Hero Image */}
+          {wikiData.originalimage ? (
+            <div className="w-full h-80 relative bg-gray-900">
+              <img src={wikiData.originalimage.source} alt={wikiData.title} className="w-full h-full object-cover opacity-90" />
+              <div className="absolute inset-0 bg-gradient-to-t from-black/80 to-transparent"></div>
+              <div className="absolute bottom-0 left-0 p-6 w-full">
+                <h3 className="text-4xl font-black text-white drop-shadow-md mb-1">{wikiData.title}</h3>
+                {wikiData.description && (
+                  <p className="text-green-300 font-bold uppercase tracking-widest text-sm drop-shadow-md flex items-center gap-2">
+                    <Leaf size={16} /> {wikiData.description}
+                  </p>
+                )}
+              </div>
+            </div>
+          ) : (
+            <div className="p-6 bg-green-50 border-b border-green-100">
+              <h3 className="text-4xl font-black text-green-900 mb-1">{wikiData.title}</h3>
+              {wikiData.description && (
+                <p className="text-green-600 font-bold uppercase tracking-widest text-sm flex items-center gap-2">
+                  <Leaf size={16} /> {wikiData.description}
+                </p>
+              )}
+            </div>
           )}
+
           <div className="p-6">
-            <h3 className="text-2xl font-black text-gray-900 mb-4 flex items-center gap-2">
-              <Info className="text-blue-500" /> {wikiData.title}
-            </h3>
             <div 
-              className="text-gray-600 text-sm leading-relaxed prose prose-green max-w-none"
-              dangerouslySetInnerHTML={{ __html: wikiData.extract }}
+              className="text-gray-700 text-base md:text-lg leading-relaxed prose prose-green max-w-none font-medium mb-8"
+              dangerouslySetInnerHTML={{ __html: wikiData.extract_html }}
             />
+            
+            {/* Gallery Grid */}
+            {wikiMedia.length > 1 && (
+              <div className="mb-8">
+                <h4 className="font-black text-xl text-gray-900 mb-4 flex items-center gap-2 border-b pb-2">
+                  <ImageIcon className="text-green-500" /> Botanical Gallery
+                </h4>
+                <div className="grid grid-cols-2 gap-3">
+                  {wikiMedia.map((src, idx) => (
+                    <div key={idx} className="rounded-xl overflow-hidden shadow-sm h-40 bg-gray-100">
+                      <img src={src} alt="Gallery item" className="w-full h-full object-cover hover:scale-110 transition duration-500 cursor-pointer" />
+                    </div>
+                  ))}
+                </div>
+              </div>
+            )}
+
             <a 
-              href={`https://en.wikipedia.org/?curid=${wikiData.pageid}`} 
+              href={wikiData.content_urls?.desktop?.page || `https://en.wikipedia.org/wiki/${wikiData.title}`}
               target="_blank" 
               rel="noreferrer"
-              className="mt-6 inline-block bg-green-50 hover:bg-green-100 text-green-800 font-bold py-2 px-4 rounded-lg text-sm transition w-full text-center border border-green-200"
+              className="block w-full bg-green-600 hover:bg-green-700 text-white font-black py-4 px-6 rounded-2xl text-center shadow-lg shadow-green-200 transition"
             >
               Read full article on Wikipedia ↗
             </a>
