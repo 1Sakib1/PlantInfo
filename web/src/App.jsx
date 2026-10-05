@@ -59,32 +59,66 @@ export default function App() {
 }
 
 function ExploreTab({ onSearch }) {
-  const trendingPlants = [
-    { name: 'Monstera Deliciosa', img: 'https://upload.wikimedia.org/wikipedia/commons/thumb/0/04/Monstera_deliciosa3.jpg/800px-Monstera_deliciosa3.jpg', desc: 'Famous for its natural leaf holes.' },
-    { name: 'Snake Plant', img: 'https://upload.wikimedia.org/wikipedia/commons/thumb/f/fb/Snake_plant.jpg/800px-Snake_plant.jpg', desc: 'Incredibly resilient air purifier.' },
-    { name: 'Lavender', img: 'https://upload.wikimedia.org/wikipedia/commons/thumb/7/7e/Single_lavendar_flower02.jpg/800px-Single_lavendar_flower02.jpg', desc: 'Known for its calming fragrance.' },
-    { name: 'Peace Lily', img: 'https://upload.wikimedia.org/wikipedia/commons/thumb/b/b3/Spathiphyllum_floribundum1.jpg/800px-Spathiphyllum_floribundum1.jpg', desc: 'Beautiful white blooms year-round.' },
-  ];
+  const [heroPlant, setHeroPlant] = useState(null);
+  const [trendingPlants, setTrendingPlants] = useState([
+    { title: 'Monstera deliciosa', desc: 'Famous for its natural leaf holes.', img: null },
+    { title: 'Dracaena trifasciata', label: 'Snake Plant', desc: 'Incredibly resilient air purifier.', img: null },
+    { title: 'Lavandula', label: 'Lavender', desc: 'Known for its calming fragrance.', img: null },
+    { title: 'Spathiphyllum', label: 'Peace Lily', desc: 'Beautiful white blooms year-round.', img: null },
+  ]);
+
+  useEffect(() => {
+    // Fetch Hero Plant
+    fetch('https://en.wikipedia.org/api/rest_v1/page/summary/Bonsai')
+      .then(r => r.json())
+      .then(data => {
+        if (data.originalimage) {
+          setHeroPlant({
+            title: 'Bonsai Tree',
+            searchQuery: 'Bonsai',
+            desc: 'The ancient Japanese art of growing miniature trees in containers, representing peace, balance, and harmony.',
+            img: data.originalimage.source
+          });
+        }
+      });
+
+    // Fetch Trending Plants
+    trendingPlants.forEach((plant, index) => {
+      fetch(`https://en.wikipedia.org/api/rest_v1/page/summary/${encodeURIComponent(plant.title)}`)
+        .then(r => r.json())
+        .then(data => {
+          if (data.thumbnail) {
+            setTrendingPlants(prev => {
+              const newArr = [...prev];
+              newArr[index].img = data.thumbnail.source;
+              return newArr;
+            });
+          }
+        });
+    });
+  }, []); // Run once on mount
 
   return (
     <div className="animate-in fade-in duration-500">
       {/* Plant of the week hero */}
-      <div className="relative h-72 w-full bg-gray-200">
-        <img 
-          src="https://upload.wikimedia.org/wikipedia/commons/thumb/e/e5/Bonsai_Trident_Maple.jpg/800px-Bonsai_Trident_Maple.jpg" 
-          alt="Plant of the week" 
-          className="w-full h-full object-cover"
-        />
-        <div className="absolute inset-0 bg-gradient-to-t from-black/80 via-black/30 to-transparent"></div>
+      <div className="relative h-72 w-full bg-gray-900 overflow-hidden">
+        {heroPlant && (
+          <img 
+            src={heroPlant.img} 
+            alt="Plant of the week" 
+            className="w-full h-full object-cover opacity-80 animate-in fade-in duration-1000"
+          />
+        )}
+        <div className="absolute inset-0 bg-gradient-to-t from-black/90 via-black/30 to-transparent"></div>
         <div className="absolute bottom-0 left-0 p-6 text-white w-full">
           <div className="flex items-center gap-2 text-yellow-400 mb-2">
             <Star size={16} fill="currentColor" />
             <span className="text-xs font-bold uppercase tracking-widest">Plant of the Week</span>
           </div>
-          <h2 className="text-3xl font-black mb-1">Bonsai Tree</h2>
-          <p className="text-sm text-gray-200 mb-3 line-clamp-2">The ancient Japanese art of growing miniature trees in containers, representing peace, balance, and harmony.</p>
+          <h2 className="text-3xl font-black mb-1">{heroPlant ? heroPlant.title : 'Loading...'}</h2>
+          <p className="text-sm text-gray-200 mb-3 line-clamp-2">{heroPlant ? heroPlant.desc : ''}</p>
           <button 
-            onClick={() => onSearch('Bonsai')}
+            onClick={() => onSearch(heroPlant ? heroPlant.searchQuery : 'Bonsai')}
             className="bg-green-500 hover:bg-green-600 text-white text-sm font-bold py-2 px-4 rounded-lg flex items-center gap-1 transition"
           >
             Learn More <ChevronRight size={16} />
@@ -99,12 +133,20 @@ function ExploreTab({ onSearch }) {
           {trendingPlants.map((plant, idx) => (
             <div 
               key={idx} 
-              onClick={() => onSearch(plant.name)}
+              onClick={() => onSearch(plant.label || plant.title)}
               className="bg-white rounded-2xl overflow-hidden shadow-sm border border-gray-100 active:scale-95 transition cursor-pointer"
             >
-              <img src={plant.img} alt={plant.name} className="w-full h-32 object-cover" />
+              <div className="w-full h-32 bg-gray-100 relative">
+                {plant.img ? (
+                  <img src={plant.img} alt={plant.label || plant.title} className="w-full h-full object-cover animate-in fade-in" />
+                ) : (
+                  <div className="absolute inset-0 flex items-center justify-center">
+                    <Loader2 className="animate-spin text-green-300" size={24} />
+                  </div>
+                )}
+              </div>
               <div className="p-3">
-                <h4 className="font-bold text-gray-800 text-sm">{plant.name}</h4>
+                <h4 className="font-bold text-gray-800 text-sm">{plant.label || plant.title}</h4>
                 <p className="text-xs text-gray-500 mt-1 line-clamp-2">{plant.desc}</p>
               </div>
             </div>
