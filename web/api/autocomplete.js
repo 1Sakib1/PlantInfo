@@ -15,15 +15,17 @@ export default async function handler(req, res) {
     const response = await ai.models.generateContent({
       model: 'gemini-1.5-flash',
       contents: [
-        \You are a botanical autocomplete engine. The user has typed the prefix: "\". Provide exactly 5 English Wikipedia article titles of plants, flowers, or trees that start with or closely match this prefix. If the prefix is ambiguous (like "Apple"), return ONLY the plant versions. If completely unrelated, return an empty array. Do NOT return anything other than a JSON array of strings.\
+        `You are a botanical autocomplete engine. The user has typed the prefix: "${query}". Provide exactly 5 English Wikipedia article titles of plants, flowers, or trees that start with or closely match this prefix. If the prefix is ambiguous (like "Apple"), return ONLY the plant versions. If completely unrelated, return an empty array. Do NOT return anything other than a JSON array of strings.`
       ],
       config: { responseMimeType: 'application/json' }
     });
     let rawText = response.text || '[]';
-    rawText = rawText.replace(/^\\\\\\json\\n?/g, '').replace(/\\n?\\\\\\$/g, '').trim();
+    rawText = rawText.replace(/^```json\n?/g, '').replace(/\n?```$/g, '').trim();
     const suggestions = JSON.parse(rawText);
     return res.status(200).json({ suggestions });
   } catch (error) {
     return res.status(500).json({ suggestions: [] });
   }
 }
+
+
