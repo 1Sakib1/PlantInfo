@@ -310,6 +310,60 @@ function ExploreTab({ onSearch, setFullscreenImage }) {
   );
 }
 
+
+const ScanningOverlay = () => {
+  const [step, setStep] = React.useState(0);
+  const steps = [
+    "Uploading image securely...",
+    "Extracting visual leaf patterns...",
+    "Analyzing petal structures...",
+    "Querying global botanical database...",
+    "Finalizing classification..."
+  ];
+
+  React.useEffect(() => {
+    const interval = setInterval(() => {
+      setStep((prev) => Math.min(prev + 1, steps.length - 1));
+    }, 1200);
+    return () => clearInterval(interval);
+  }, []);
+
+  return (
+    <>
+      <div className="absolute inset-0 bg-green-900/30 backdrop-blur-[3px] z-10 transition-all duration-700" />
+      
+      {/* Scanning Laser */}
+      <div className="absolute left-0 w-full h-[3px] bg-green-400 shadow-[0_0_25px_8px_rgba(74,222,128,1)] animate-[scan_2s_ease-in-out_infinite] z-20" />
+      
+      {/* Scanning Grid Background */}
+      <div className="absolute inset-0 bg-[linear-gradient(rgba(74,222,128,0.15)_1px,transparent_1px),linear-gradient(90deg,rgba(74,222,128,0.15)_1px,transparent_1px)] bg-[size:30px_30px] animate-[pulse_3s_ease-in-out_infinite] z-10" />
+      
+      <div className="absolute inset-0 flex flex-col items-center justify-center z-30">
+        <div className="relative mb-8">
+          <div className="absolute inset-0 bg-green-400 rounded-full animate-ping opacity-50 scale-150" style={{ animationDuration: '2000ms' }}></div>
+          <div className="relative bg-gradient-to-br from-green-400 to-green-700 text-white p-6 rounded-full shadow-[0_0_50px_rgba(34,197,94,0.8)] border-2 border-green-200/50">
+            <Leaf size={48} className="animate-pulse drop-shadow-lg" />
+          </div>
+        </div>
+        
+        <div className="bg-black/70 backdrop-blur-xl px-8 py-4 rounded-2xl border border-green-500/40 flex flex-col items-center gap-3 shadow-2xl min-w-[280px]">
+          <div className="flex items-center gap-3">
+             <Loader2 size={20} className="animate-spin text-green-400" />
+             <p className="text-white font-bold tracking-wide text-sm md:text-base animate-pulse">{steps[step]}</p>
+          </div>
+          {/* Progress Bar */}
+          <div className="w-full bg-gray-800 rounded-full h-2 mt-2 overflow-hidden shadow-inner">
+            <div 
+              className="bg-gradient-to-r from-green-500 to-green-300 h-2 rounded-full transition-all duration-500 ease-out" 
+              style={{ width: (((step + 1) / steps.length) * 100) + '%' }}
+            ></div>
+          </div>
+        </div>
+      </div>
+    </>
+  );
+};
+
 function ScanTab() {
   const [imageSrc, setImageSrc] = useState(null);
   const [imageFile, setImageFile] = useState(null);
@@ -558,248 +612,7 @@ function SearchTab({ initialQuery, setFullscreenImage }) {
     }
     const timer = setTimeout(async () => {
       try {
-        const res = await fetch(`https://en.wikipedia.org/w/api.php?action=opensearch&search=${encodeURIComponent(query)}&limit=5&namespace=0&format=json&origin=*`);
-        const data = await res.json();
-        setSuggestions(data[1] || []);
-      } catch (e) {
-        console.error("Autocomplete error", e);
-      }
-    }, 300);
-    return () => clearTimeout(timer);
-  }, [query]);
-
-  const executeSearch = async (searchStr) => {
-    if (!searchStr.trim()) return;
-    
-    setQuery(searchStr);
-    setShowSuggestions(false);
-    setLoading(true);
-    setError(null);
-    setWikiData(null);
-    setWikiMedia([]);
-
-    try {
-      // 1. Intelligent AI Query Resolution
-      const aiRes = await fetch('/api/search', {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ query: searchStr })
-      });
-      
-      if (!aiRes.ok) throw new Error('AI Search failed to resolve query.');
-      const aiData = await aiRes.json();
-
-      if (!aiData.isPlant) {
-        setError(aiData.reasoning || `"${searchStr}" does not appear to be a plant. Please search for botanical subjects.`);
-        setLoading(false);
-        return;
-      }
-
-      const exactWikiTitle = aiData.wikipediaTitle;
-
-      // 2. Fetch rich summary from Wikipedia REST API using the AI-resolved title
-      const summaryRes = await fetch(`https://en.wikipedia.org/api/rest_v1/page/summary/${encodeURIComponent(exactWikiTitle.replace(/ /g, '_'))}`);
-      if (!summaryRes.ok) throw new Error(`Could not find Wikipedia data for "${exactWikiTitle}"`);
-      const summaryData = await summaryRes.json();
-      
-      if (summaryData.type === 'disambiguation') {
-        setError(`"${exactWikiTitle}" is too broad. Please be more specific.`);
-        setLoading(false);
-        return;
-      }
-
-      setWikiData(summaryData);
-
-      // 3. Fetch media gallery for this page
-      const mediaRes = await fetch(`https://en.wikipedia.org/api/rest_v1/page/media-list/${encodeURIComponent(summaryData.title.replace(/ /g, '_'))}`);
-      if (mediaRes.ok) {
-        const mediaData = await mediaRes.json();
-        const photos = mediaData.items
-          .filter(item => item.type === 'image' && (item.title.toLowerCase().endsWith('.jpg') || item.title.toLowerCase().endsWith('.jpeg') || item.title.toLowerCase().endsWith('.png')))
-          .map(item => {
-            let src = item.srcset && item.srcset.length > 0 ? item.srcset[item.srcset.length - 1].src : (item.source?.src || '');
-            if (src.startsWith('//')) {
-              src = 'https:' + src;
-            }
-            return src;
-          })
-          .filter(src => src.startsWith('http'))
-          .slice(0, 4); // Take top 4 photos
-        
-        setWikiMedia(photos);
-      }
-    } catch (err) {
-      console.error(err);
-      setError(`Our AI Botanist could not find encyclopedia records for "${searchStr}".`);
-    } finally {
-      setLoading(false);
-    }
-  };
-
-  const onSubmit = (e) => {
-    e.preventDefault();
-    executeSearch(query);
-  };
-
-  return (
-    <div className="flex flex-col gap-6 p-4 animate-in fade-in duration-500">
-      <div className="text-center mt-2">
-        <h2 className="text-3xl font-black text-green-800 mb-2 tracking-tight">Wiki Explorer</h2>
-        <p className="text-gray-600 text-sm">Search the world's largest encyclopedia for comprehensive botanical details.</p>
-      </div>
-
-      <div className="relative z-30">
-        <form onSubmit={onSubmit} className="relative">
-          <input 
-            type="text" 
-            placeholder="e.g. Monstera deliciosa..."
-            className="w-full bg-white border-2 border-green-200 rounded-2xl py-4 pl-12 pr-4 shadow-[0_4px_20px_rgba(0,0,0,0.05)] focus:outline-none focus:border-green-500 transition font-medium text-lg"
-            value={query}
-            onChange={e => {
-              setQuery(e.target.value);
-              setShowSuggestions(true);
-            }}
-            onFocus={() => setShowSuggestions(true)}
-            onBlur={() => setTimeout(() => setShowSuggestions(false), 200)}
-          />
-          <Search className="absolute left-4 top-1/2 -translate-y-1/2 text-green-400" size={24} />
-          <button type="submit" className="absolute right-2 top-1/2 -translate-y-1/2 bg-green-500 text-white hover:bg-green-600 px-4 py-2 rounded-xl transition font-bold shadow-md">
-            Search
-          </button>
-        </form>
-
-        {/* Autocomplete Suggestions */}
-        {showSuggestions && suggestions.length > 0 && (
-          <div className="absolute top-full left-0 w-full mt-2 bg-white rounded-xl shadow-2xl border border-gray-100 overflow-hidden animate-in slide-in-from-top-2">
-            {suggestions.map((sug, idx) => (
-              <div 
-                key={idx} 
-                onClick={() => executeSearch(sug)}
-                className="px-4 py-3 hover:bg-green-50 cursor-pointer text-gray-800 font-medium border-b border-gray-50 last:border-0 flex items-center gap-3 transition"
-              >
-                <Search size={16} className="text-gray-400" />
-                {sug}
-              </div>
-            ))}
-          </div>
-        )}
-      </div>
-
-      {loading && (
-        <div className="flex flex-col items-center justify-center py-16">
-          <Loader2 size={48} className="animate-spin text-green-500 mb-4" />
-          <p className="font-bold text-green-600 animate-pulse">Searching encyclopedia...</p>
-        </div>
-      )}
-
-      {error && (
-        <div className="bg-red-50 text-red-700 p-6 rounded-2xl border border-red-100 text-center shadow-sm">
-          <AlertCircle size={32} className="mx-auto mb-3 text-red-400" />
-          <p className="font-bold">{error}</p>
-        </div>
-      )}
-
-      {wikiData && (
-        <div className="bg-white rounded-3xl shadow-xl overflow-hidden border border-gray-100 animate-in slide-in-from-bottom-8">
-          
-          {/* Main Hero Image */}
-          {wikiData.originalimage ? (
-            <div className="w-full h-80 relative bg-gray-900 group">
-              <img src={wikiData.originalimage.source} alt={wikiData.title} className="w-full h-full object-cover opacity-90" />
-              <div className="absolute inset-0 bg-gradient-to-t from-black/80 to-transparent pointer-events-none"></div>
-              
-              <div className="absolute top-4 right-4 flex flex-col gap-2 z-20 opacity-0 group-hover:opacity-100 transition-opacity">
-                <button 
-                  onClick={(e) => { e.stopPropagation(); setFullscreenImage(wikiData.originalimage.source); }}
-                  className="bg-black/40 hover:bg-blue-500 backdrop-blur-md text-white p-3 rounded-full transition-colors border border-white/20 shadow-lg"
-                  title="Fullscreen Image"
-                >
-                  <Maximize2 size={20} />
-                </button>
-                <button 
-                  onClick={(e) => forceDownload(wikiData.originalimage.source, `${wikiData.title.replace(/ /g, '_')}_Hero.jpg`, e)}
-                  className="bg-black/40 hover:bg-green-500 backdrop-blur-md text-white p-3 rounded-full transition-colors border border-white/20 shadow-lg"
-                  title="Download High-Res Image"
-                >
-                  <Download size={20} />
-                </button>
-              </div>
-
-              <div className="absolute bottom-0 left-0 p-6 w-full pointer-events-none">
-                <h3 className="text-4xl font-black text-white drop-shadow-md mb-1">{wikiData.title}</h3>
-                {wikiData.description && (
-                  <p className="text-green-300 font-bold uppercase tracking-widest text-sm drop-shadow-md flex items-center gap-2">
-                    <Leaf size={16} /> {wikiData.description}
-                  </p>
-                )}
-              </div>
-            </div>
-          ) : (
-            <div className="p-6 bg-green-50 border-b border-green-100">
-              <h3 className="text-4xl font-black text-green-900 mb-1">{wikiData.title}</h3>
-              {wikiData.description && (
-                <p className="text-green-600 font-bold uppercase tracking-widest text-sm flex items-center gap-2">
-                  <Leaf size={16} /> {wikiData.description}
-                </p>
-              )}
-            </div>
-          )}
-
-          <div className="p-6">
-            <div 
-              className="text-gray-700 text-base md:text-lg leading-relaxed prose prose-green max-w-none font-medium mb-8"
-              dangerouslySetInnerHTML={{ __html: wikiData.extract_html }}
-            />
-            
-            {/* Gallery Grid */}
-            {wikiMedia.length > 1 && (
-              <div className="mb-8">
-                <h4 className="font-black text-xl text-gray-900 mb-4 flex items-center gap-2 border-b pb-2">
-                  <ImageIcon className="text-green-500" /> Botanical Gallery
-                </h4>
-                <div className="grid grid-cols-2 gap-3">
-                  {wikiMedia.map((src, idx) => (
-                    <div key={idx} className="rounded-xl overflow-hidden shadow-sm h-40 bg-gray-100 relative group cursor-pointer" onClick={() => setFullscreenImage(src)}>
-                      <img src={src} alt="Gallery item" className="w-full h-full object-cover group-hover:scale-110 transition duration-500" />
-                      <div className="absolute inset-0 bg-black/0 group-hover:bg-black/20 transition duration-300"></div>
-                      
-                      <div className="absolute bottom-2 right-2 flex gap-2 opacity-0 group-hover:opacity-100 transition-opacity">
-                        <button 
-                          onClick={(e) => { e.stopPropagation(); setFullscreenImage(src); }}
-                          className="bg-black/50 hover:bg-blue-500 backdrop-blur-md text-white p-2 rounded-full transition-colors border border-white/20"
-                          title="Fullscreen Image"
-                        >
-                          <Maximize2 size={16} />
-                        </button>
-                        <button 
-                          onClick={(e) => forceDownload(src, `${wikiData.title.replace(/ /g, '_')}_Gallery_${idx+1}.jpg`, e)}
-                          className="bg-black/50 hover:bg-green-500 backdrop-blur-md text-white p-2 rounded-full transition-colors border border-white/20"
-                          title="Download Image"
-                        >
-                          <Download size={16} />
-                        </button>
-                      </div>
-                    </div>
-                  ))}
-                </div>
-              </div>
-            )}
-
-            <a 
-              href={wikiData.content_urls?.desktop?.page || `https://en.wikipedia.org/wiki/${wikiData.title}`}
-              target="_blank" 
-              rel="noreferrer"
-              className="block w-full bg-green-600 hover:bg-green-700 text-white font-black py-4 px-6 rounded-2xl text-center shadow-lg shadow-green-200 transition"
-            >
-              Read full article on Wikipedia ↗
-            </a>
-          </div>
-        </div>
-      )}
-    </div>
-  );
-}
-'/api/autocomplete', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ query }) });
+        const res = await fetch('/api/autocomplete', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ query }) });
         const data = await res.json();
         setSuggestions(data.suggestions || []);
       } catch (e) {
